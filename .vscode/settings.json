@@ -1,0 +1,6 @@
+{
+    "extensions.ignoreRecommendations": true,
+    "files.associations": {
+        "*.ino": "cpp"
+    }
+}
