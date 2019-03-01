@@ -1,3 +1,5 @@
+#include "application.h"
+#line 1 "/Users/jaredwolff/Circuit_Dojo/pm25/src/pm25.ino"
 /*
  * Project pm25
  * Description: Particle powered PM2.5 and air quality sensor
@@ -8,6 +10,12 @@
 #include "si7021.h"
 #include "ccs811.h"
 
+void ccs811_handler( ccs811_data_t * p_data );
+void hpma_handler( void );
+void css811_pin_interrupt();
+void setup();
+void loop();
+#line 11 "/Users/jaredwolff/Circuit_Dojo/pm25/src/pm25.ino"
 #define I2C_SDA_PIN     D0
 #define I2C_SCL_PIN     D1
 #define UART_TX_PIN     D2

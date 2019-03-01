@@ -7,6 +7,8 @@ uint32_t Si7021::setup() {
   if (Wire.requestFrom(SI7021_ADDRESS, 1) == 0) {
     return SI7021_COMMS_FAIL_ERROR;
   }
+
+  return SI7021_SUCCESS;
 }
 
 si7021_data_t Si7021::read(void) {
@@ -28,7 +30,7 @@ si7021_data_t Si7021::read(void) {
 
     // Si7021 Humidity
     Wire.beginTransmission(SI7021_ADDRESS);
-    Wire.write(SI7021_HUMIDITY_READ_CMD); // sends one byte
+    Wire.write(SI7021_HUMIDITY_HOLD_CMD); // sends one byte
     Wire.endTransmission();               // stop transaction
     Wire.requestFrom(SI7021_ADDRESS, 2);
 
