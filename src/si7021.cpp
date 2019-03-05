@@ -11,10 +11,7 @@ uint32_t Si7021::setup() {
   return SI7021_SUCCESS;
 }
 
-si7021_data_t Si7021::read(void) {
-
-    // Output struct
-    si7021_data_t ret;
+ uint32_t Si7021::read(si7021_data_t * p_data) {
 
     // Si7021 Temperature
     Wire.beginTransmission(SI7021_ADDRESS);
@@ -26,7 +23,7 @@ si7021_data_t Si7021::read(void) {
     uint16_t temp_code = (Wire.read() & 0x00ff) << 8 | (Wire.read() & 0x00ff);
 
     // Then calculate the temperature
-    ret.temperature = ((175.72 * temp_code) / 0xffff - 46.85) * 100;
+    p_data->temperature = ((175.72 * temp_code) / 0xffff - 46.85);
 
     // Si7021 Humidity
     Wire.beginTransmission(SI7021_ADDRESS);
@@ -38,7 +35,7 @@ si7021_data_t Si7021::read(void) {
     uint16_t rh_code = (Wire.read() & 0x00ff) << 8 | (Wire.read() & 0x00ff);
 
     // Then calculate the teperature
-    ret.humidity = ((125 * rh_code) / 0xffff - 6) * 100;
+    p_data->humidity = ((125 * rh_code) / 0xffff - 6);
 
-    return ret;
+    return SI7021_SUCCESS;
 }

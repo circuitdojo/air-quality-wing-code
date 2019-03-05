@@ -21,7 +21,7 @@ class Si7021 {
   public:
     Si7021(void);
     uint32_t setup();
-    si7021_data_t read(void);
+    uint32_t read(si7021_data_t * p_data);
 };
 
 #endif
