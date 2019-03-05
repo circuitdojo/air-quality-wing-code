@@ -10,7 +10,7 @@ uint32_t CCS811::setup( ccs811_init_t * p_init ) {
 
   // Return an error if init is NULL
   if( p_init == NULL ) {
-    return CSS811_NULL_ERROR;
+    return CCS811_NULL_ERROR;
   }
 
   // Configures the important stuff
@@ -32,14 +32,29 @@ uint32_t CCS811::setup( ccs811_init_t * p_init ) {
   pinMode(this->rst_pin, OUTPUT);
   digitalWrite(this->rst_pin, LOW);
   delay(1);
-  digitalWrite(this->rst_pin, HIGH);
-  delay(1);
+  pinMode(this->rst_pin, INPUT);
+  delay(30);
 
-  // Set the mode to off
+  // Run the app
   Wire.beginTransmission(this->address);
-  Wire.write(CCS811_MEAS_MODE_REG); // sends register address
-  Wire.write(CSS811_IDLE_MODE);     // sends configuration byte
-  return Wire.endTransmission();    // stop transaction
+  Wire.write(CCS811_START_APP); // sends register address
+  Wire.endTransmission();  // stop transaction
+
+  delay(30);
+
+  Wire.beginTransmission(this->address);
+  Wire.write(CCS811_STATUS_REG);
+  Wire.endTransmission();  // stop transaction
+  Wire.requestFrom(this->address,1);
+
+  uint8_t status = Wire.read();
+
+  // Checks if the app is running
+  if( status & CCS811_FW_MODE_RUN ) {
+    return CCS811_SUCCESS;
+  } else {
+    return CCS811_RUN_ERROR;
+  }
 
 }
 
@@ -52,7 +67,7 @@ uint32_t CCS811::enable(void) {
   // Set mode to 10 sec mode & enable int
   Wire.beginTransmission(this->address);
   Wire.write(CCS811_MEAS_MODE_REG); // sends register address
-  Wire.write(CSS811_CONSTANT_MODE | CSS811_INT_EN);     // enables consant mode with interrupt
+  Wire.write(CCS811_CONSTANT_MODE | CCS811_INT_EN);     // enables consant mode with interrupt
   err_code = Wire.endTransmission();           // stop transaction
   if( err_code != 0 ){
     return err_code;
@@ -61,21 +76,18 @@ uint32_t CCS811::enable(void) {
   // Clear any interrupts
   Wire.beginTransmission(this->address);
   Wire.write(CCS811_RESULT_REG); // sends register address
-  err_code = Wire.endTransmission();  // stop transaction
+  err_code = Wire.endTransmission(false);  // stop transaction
   if( err_code != 0 ){
     return err_code;
   }
 
-  size_t bytes_read = Wire.readBytes(data,4);
-  // if( bytes_read != 4 ) {
-  //   Serial.println("no dat");
-  //   return CSS811_NO_DAT_AVAIL;
-  // }
+  // Flush bytes
+  Wire.requestFrom(this->address, 4); // Read the bytes
+  while(Wire.available()) {
+    Wire.read();
+  }
 
-  uint8_t intpin = digitalRead(this->int_pin);
-  Serial.printf("Int pin %d\n",intpin);
-
-  return CSS811_SUCCESS;
+  return CCS811_SUCCESS;
 
 }
 
@@ -83,7 +95,6 @@ uint32_t CCS811::read(ccs811_data_t * p_data) {
 
   // If the data is ready, read
   if( this->data_ready ) {
-      char data[4];
 
       // Disable flag
       this->data_ready = false;
@@ -91,18 +102,20 @@ uint32_t CCS811::read(ccs811_data_t * p_data) {
       Wire.beginTransmission(this->address);
       Wire.write(CCS811_RESULT_REG); // sends register address
       Wire.endTransmission();  // stop transaction
-      Wire.readBytes(data,4);
+      Wire.requestFrom(this->address, 4); // request the bytes
 
       // Convert data to something useful
-      p_data->c02 = data[0];
-      p_data->c02 = (p_data->c02<<8) + data[1];
+      p_data->c02 = Wire.read();
+      p_data->c02 = (p_data->c02<<8) + Wire.read();
 
-      p_data->tvoc = data[2];
-      p_data->tvoc = (p_data->tvoc<<8) + data[3];
+      p_data->tvoc = Wire.read();
+      p_data->tvoc = (p_data->tvoc<<8) + Wire.read();
 
-      return CSS811_SUCCESS;
+      // Serial.printf("c02: %.2fppm tvoc: %.2fppb\n",p_data->c02,p_data->tvoc);
+
+      return CCS811_SUCCESS;
   } else {
-      return CSS811_NO_DAT_AVAIL;
+      return CCS811_NO_DAT_AVAIL;
   }
 
 }

@@ -8,14 +8,21 @@
 #define CCS811_MEAS_MODE_REG  0x01
 #define CCS811_RESULT_REG     0x02
 #define CCS811_HW_ID_REG      0x20
+#define CCS811_START_APP      0xF4
 
-#define CSS811_IDLE_MODE      0x00
-#define CSS811_CONSTANT_MODE  0x20
-#define CSS811_INT_EN         0x08
+#define CCS811_IDLE_MODE      0x00
+#define CCS811_CONSTANT_MODE  0x20
+#define CCS811_INT_EN         0x08
 
-#define CSS811_SUCCESS        0
-#define CSS811_NULL_ERROR     1
-#define CSS811_NO_DAT_AVAIL   2
+#define CCS811_FW_MODE_RUN    0x90
+
+// Error codes
+enum {
+  CCS811_SUCCESS,
+  CCS811_NULL_ERROR,
+  CCS811_NO_DAT_AVAIL,
+  CCS811_RUN_ERROR
+};
 
 typedef struct {
   uint16_t c02;

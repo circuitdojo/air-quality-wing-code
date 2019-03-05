@@ -12,7 +12,7 @@
 #define I2C_SDA_PIN     D0
 #define I2C_SCL_PIN     D1
 
-#define CSS811_WAKE_PIN D6
+#define CCS811_WAKE_PIN D6
 #define CCS811_INT_PIN  D8
 #define CCS811_RST_PIN  D7
 
@@ -20,7 +20,7 @@
 #define CCS811_ADDRESS  0x5a
 
 // Delay and timing related contsants
-#define MEASUREMENT_DELAY_MS 60000
+#define MEASUREMENT_DELAY_MS 10000
 
 // I2C Related constants
 #define I2C_CLK_SPEED 100000
@@ -32,10 +32,11 @@ static uint32_t last_measurement_ms = 0;
 static Si7021  si7021 = Si7021();
 static CCS811  ccs811 = CCS811();
 static HPMA115 hpma115 = HPMA115();
+static si7021_data_t si7021_data;
+static ccs811_data_t ccs811_data;
 
-// css811_pin_interrupt() forwards pin interrupt on to the specific handler
-void css811_pin_interrupt() {
-  Serial.println("css811 int");
+// ccs811_pin_interrupt() forwards pin interrupt on to the specific handler
+void ccs811_pin_interrupt() {
   ccs811.int_handler();
 }
 
@@ -66,15 +67,15 @@ void setup() {
   }
 
   // Setup CC8012
-  ccs811_init_t css811_init;
-  css811_init.int_pin = CCS811_INT_PIN;
-  css811_init.address = CCS811_ADDRESS;
-  css811_init.pin_interrupt = css811_pin_interrupt;
-  css811_init.rst_pin = CCS811_RST_PIN;
-  css811_init.wake_pin = CSS811_WAKE_PIN;
+  ccs811_init_t ccs811_init;
+  ccs811_init.int_pin = CCS811_INT_PIN;
+  ccs811_init.address = CCS811_ADDRESS;
+  ccs811_init.pin_interrupt = ccs811_pin_interrupt;
+  ccs811_init.rst_pin = CCS811_RST_PIN;
+  ccs811_init.wake_pin = CCS811_WAKE_PIN;
 
   // Init the TVOC & C02 sensor
-  err_code = ccs811.setup(&css811_init);
+  err_code = ccs811.setup(&ccs811_init);
   if( err_code != 0 ) {
     Serial.printf("ccs811 setup err %d\n", err_code);
   }
@@ -100,17 +101,14 @@ void loop() {
 
   // If we're greater than or equal to the measurement delay
   // start taking measurements!
-  if( millis()-last_measurement_ms >= MEASUREMENT_DELAY_MS) {
+  if( millis()-last_measurement_ms >= MEASUREMENT_DELAY_MS ) {
     // Reset the timer
     last_measurement_ms = millis();
 
     // Read temp and humiity
-    si7021_data_t si7021_data;
     uint32_t err_code = si7021.read(&si7021_data);
 
     if( err_code == SI7021_SUCCESS ) {
-      Serial.printf("temp: %.2f°C %.2f%%\n",si7021_data.temperature,si7021_data.humidity);
-
       // Publish this data
       Particle.publish("temperature", String::format("%.2f",si7021_data.temperature), PRIVATE, WITH_ACK);
       Particle.publish("humidity", String::format("%.2f",si7021_data.humidity), PRIVATE, WITH_ACK);
@@ -120,15 +118,12 @@ void loop() {
     }
 
     // Process CCS811
-    ccs811_data_t css811_data;
-    err_code = ccs811.read(&css811_data);
+    err_code = ccs811.read(&ccs811_data);
 
-    if ( err_code == CSS811_SUCCESS ) {
-      Serial.printf("c02: %.2fppm tvoc: %.2fppb\n",css811_data.c02,css811_data.tvoc);
-
+    if ( err_code == CCS811_SUCCESS ) {
       // Publish this data
-      Particle.publish("c02", String::format("%.2f",css811_data.c02), PRIVATE, WITH_ACK);
-      Particle.publish("tvoc", String::format("%.2f",css811_data.tvoc), PRIVATE, WITH_ACK);
+      Particle.publish("c02", String::format("%.2f",ccs811_data.c02), PRIVATE, WITH_ACK);
+      Particle.publish("tvoc", String::format("%.2f",ccs811_data.tvoc), PRIVATE, WITH_ACK);
     } else {
       Serial.printf("tvoc/c02 not avail\n");
     }
