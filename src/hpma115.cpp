@@ -62,7 +62,7 @@ void HPMA115::process() {
         // Serial.println("header ok");
         this->state = DATA_READ;
       } else {
-        Serial.println("header not valid");
+        // Serial.println("header not valid");
       }
 
     }
