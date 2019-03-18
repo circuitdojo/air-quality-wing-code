@@ -17,6 +17,7 @@
 typedef enum {
   READY,
   DATA_AVAILABLE,
+  DATA_PROCESS,
   DATA_READ,
   DISABLED
 } hpma115_state_t;

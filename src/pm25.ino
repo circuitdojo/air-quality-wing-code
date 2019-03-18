@@ -24,7 +24,7 @@
 #define CCS811_ADDRESS  0x5a
 
 // Delay and timing related contsants
-#define MEASUREMENT_DELAY_MS 10000
+#define MEASUREMENT_DELAY_MS 60000
 
 // I2C Related constants
 #define I2C_CLK_SPEED 100000
