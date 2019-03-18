@@ -24,7 +24,7 @@
 #define CCS811_ADDRESS  0x5a
 
 // Delay and timing related contsants
-#define MEASUREMENT_DELAY_MS 60000
+#define MEASUREMENT_DELAY_MS 10000
 
 // I2C Related constants
 #define I2C_CLK_SPEED 100000
@@ -38,6 +38,12 @@ static CCS811  ccs811 = CCS811();
 static HPMA115 hpma115 = HPMA115();
 static si7021_data_t si7021_data;
 static ccs811_data_t ccs811_data;
+static hpma115_data_t hpma115_data;
+
+// Data state ready
+static bool hpma115_data_ready = false;
+static bool si7021_data_ready = false;
+static bool ccs811_data_ready = false;
 
 // ccs811_pin_interrupt() forwards pin interrupt on to the specific handler
 void ccs811_pin_interrupt() {
@@ -51,11 +57,11 @@ void serialEvent1() {
 
 // Async publish event
 void hpma_evt_handler(hpma115_data_t *p_data) {
+  hpma115_data = *p_data;
 
-  // Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", p_data->pm25, p_data->pm10);
+  Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", hpma115_data.pm25, hpma115_data.pm10);
 
-  Particle.publish("pm25", String::format("%d",p_data->pm25), PRIVATE, WITH_ACK);
-  Particle.publish("pm10", String::format("%d",p_data->pm10), PRIVATE, WITH_ACK);
+  hpma115_data_ready = true;
 }
 
 // setup() runs once, when the device is first turned on.
@@ -72,6 +78,7 @@ void setup() {
   uint32_t err_code = si7021.setup();
   if( err_code != 0 ) {
     Serial.printf("si7021 setup err %d\n", err_code);
+    System.reset();
   }
 
   // Setup CC8012
@@ -86,6 +93,7 @@ void setup() {
   err_code = ccs811.setup(&ccs811_init);
   if( err_code != 0 ) {
     Serial.printf("ccs811 setup err %d\n", err_code);
+    System.reset();
   }
 
   // Start VOC measurement
@@ -93,6 +101,7 @@ void setup() {
   err_code = ccs811.enable();
   if( err_code != 0 ) {
     Serial.printf("ccs811 enable err %d\n", err_code);
+    System.reset();
   }
 
   // Setup HPMA115
@@ -101,12 +110,27 @@ void setup() {
   hpma115_init.enable_pin = HPMA1150_EN_PIN;
 
   // Init HPM115 sensor
-  hpma115.setup(&hpma115_init);
+  err_code = hpma115.setup(&hpma115_init);
+  if (err_code != HPMA115_SUCCESS) {
+    Serial.printf("hpma115 enable err %d\n", err_code);
+    System.reset();
+  }
 
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
+
+  // If all the data is ready, send it as one data blob
+  if (ccs811_data_ready && si7021_data_ready && hpma115_data_ready ) {
+    String out = String::format("{\"temperature\":%.2f,\"humidity\":%.2f,\"pm25\":%d,\"pm10\":%d,\"tvoc\":%d,\"c02\":%d}",si7021_data.temperature,si7021_data.humidity,hpma115_data.pm25,hpma115_data.pm10,ccs811_data.tvoc,ccs811_data.c02);
+    Particle.publish("blob", out , PRIVATE, WITH_ACK);
+
+    // Reset to false
+    ccs811_data_ready = false;
+    si7021_data_ready = false;
+    hpma115_data_ready = false;
+  }
 
   // If we're greater than or equal to the measurement delay
   // start taking measurements!
@@ -121,20 +145,14 @@ void loop() {
       // Set env data in the CCS811
       ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
 
-      // Publish this data
-      Particle.publish("temperature", String::format("%.2f",si7021_data.temperature), PRIVATE, WITH_ACK);
-      Particle.publish("humidity", String::format("%.2f",si7021_data.humidity), PRIVATE, WITH_ACK);
-
+      si7021_data_ready = true;
     }
 
     // Process CCS811
     err_code = ccs811.read(&ccs811_data);
 
     if ( err_code == CCS811_SUCCESS ) {
-      // Publish this data
-      Particle.publish("c02", String::format("%d",ccs811_data.c02), PRIVATE, WITH_ACK);
-      Particle.publish("tvoc", String::format("%d",ccs811_data.tvoc), PRIVATE, WITH_ACK);
-
+      ccs811_data_ready = true;
     }
 
     // Process PM2.5 and PM10 results
