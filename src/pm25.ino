@@ -52,7 +52,7 @@ void serialEvent1() {
 // Async publish event
 void hpma_evt_handler(hpma115_data_t *p_data) {
 
-  Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", p_data->pm25, p_data->pm10);
+  // Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", p_data->pm25, p_data->pm10);
 
   Particle.publish("pm25", String::format("%d",p_data->pm25), PRIVATE, WITH_ACK);
   Particle.publish("pm10", String::format("%d",p_data->pm10), PRIVATE, WITH_ACK);
