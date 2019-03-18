@@ -24,7 +24,7 @@
 #define CCS811_ADDRESS  0x5a
 
 // Delay and timing related contsants
-#define MEASUREMENT_DELAY_MS 10000
+#define MEASUREMENT_DELAY_MS 60000
 
 // I2C Related constants
 #define I2C_CLK_SPEED 100000
@@ -148,6 +148,7 @@ void loop() {
   // Processes any avilable serial data
   hpma115.process();
 
+  // Send updates/communicate with service when connected
   if( Particle.connected ) {
     Particle.process();
   }
