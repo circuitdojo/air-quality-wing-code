@@ -59,7 +59,7 @@ void HPMA115::process() {
 
       // Make sure two header bytes are correct
       if( this->rx_buf[0] == 0x42 && this->rx_buf[1] == 0x4d ) {
-        Serial.println("header ok");
+        // Serial.println("header ok");
         this->state = DATA_READ;
       } else {
         Serial.println("header not valid");
@@ -72,7 +72,7 @@ void HPMA115::process() {
         // Then read
         size_t num_bytes = Serial1.readBytes(this->rx_buf+2,30);
 
-        Serial.printf("num bytes: %d\n", num_bytes);
+        // Serial.printf("num bytes: %d\n", num_bytes);
 
         // Change state
         this->state = DATA_PROCESS;
@@ -91,20 +91,20 @@ void HPMA115::process() {
       // Un-serialize checksum from data
       uint16_t data_checksum = (this->rx_buf[30] << 8) + this->rx_buf[31];
 
-      Serial.printf("%x %x\n",calc_checksum,data_checksum);
+      // Serial.printf("%x %x\n",calc_checksum,data_checksum);
 
       // Make sure the calculated and the provided are the same
       if ( calc_checksum != data_checksum ) {
 
         // Print out data
-        for( int i = 0; i < 32; i++ ) {
-          Serial.printf("%x ", this->rx_buf[i]);
-        }
+        // for( int i = 0; i < 32; i++ ) {
+        //   Serial.printf("%x ", this->rx_buf[i]);
+        // }
 
         // Erase the rx_buf
         memset(this->rx_buf,0,32);
 
-        Serial.println("\nchecksum fail");
+        Serial.println("hpma checksum fail");
         this->state = READY;
 
         return;

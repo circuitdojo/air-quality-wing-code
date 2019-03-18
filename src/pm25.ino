@@ -59,7 +59,7 @@ void serialEvent1() {
 void hpma_evt_handler(hpma115_data_t *p_data) {
   hpma115_data = *p_data;
 
-  Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", hpma115_data.pm25, hpma115_data.pm10);
+  // Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", hpma115_data.pm25, hpma115_data.pm10);
 
   hpma115_data_ready = true;
 }
