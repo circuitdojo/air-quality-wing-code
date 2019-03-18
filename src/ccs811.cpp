@@ -58,6 +58,35 @@ uint32_t CCS811::setup( ccs811_init_t * p_init ) {
 
 }
 
+uint32_t CCS811::set_env(float temp, float hum) {
+
+  uint32_t err_code;
+
+  // Shift left b/c this register is shifted left by 1
+  uint16_t hum_conv = (uint16_t)hum << 1;
+
+  // Get the fraction part (typecasting to remove int)
+  float frac_part = temp - (uint16_t)temp;
+
+  // Serial.printf("temp %.2f", temp);
+  // Serial.printf("hum %.2f", hum);
+  // Serial.printf("frac %.2f", frac_part);
+
+  // Generate the calculated values
+  uint16_t temp_high = (((uint16_t)temp + 25) << 9);
+	uint16_t temp_low = ((uint16_t)(frac_part / (1.0/512)) & 0x1FF);
+  uint16_t temp_conv = (temp_high | temp_low);
+
+  // Data to send
+  char data[] = { hum_conv, 0x00, temp_high, temp_low };
+
+  // Write this
+  Wire.beginTransmission(this->address);
+  Wire.write(CCS811_ENV_REG);
+  Wire.write(data);
+  Wire.endTransmission();  // stop transaction
+
+}
 
 uint32_t CCS811::enable(void) {
 
@@ -111,7 +140,12 @@ uint32_t CCS811::read(ccs811_data_t * p_data) {
       p_data->tvoc = Wire.read();
       p_data->tvoc = (p_data->tvoc<<8) + Wire.read();
 
-      // Serial.printf("c02: %.2fppm tvoc: %.2fppb\n",p_data->c02,p_data->tvoc);
+      // Serial.printf("c02: %dppm tvoc: %dppb\n",p_data->c02,p_data->tvoc);
+
+      // If this value is < 400 not ready yet
+      if ( p_data->c02 <= CCS811_MIN_C02_LEVEL ) {
+        return CCS811_NO_DAT_AVAIL;
+      }
 
       return CCS811_SUCCESS;
   } else {

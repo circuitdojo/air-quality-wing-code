@@ -10,41 +10,95 @@ uint32_t HPMA115::setup(hpma115_init_t *p_init) {
   // Set up callback
   this->callback = p_init->callback;
 
-  // Enable autosend
-  const char data[] = { HPMA115_HEAD, 1, HPMA115_START_AUTO_SEND_CMD, ((65536-(HPMA115_HEAD+1+HPMA115_START_AUTO_SEND_CMD)) % 256)};
+  // Set enable pin
+  this->enable_pin = p_init->enable_pin;
 
-  // Send the data
-  Serial1.write(data);
+  // Stop device
+  this->disable();
 
   return HPMA115_SUCCESS;
 }
 
 uint32_t HPMA115::enable(){
-  //Send command to start readings
-  const char data[] = {  HPMA115_HEAD, 1, HPMA115_START_MEASUREMENT, ((65536-(HPMA115_HEAD+1+HPMA115_START_MEASUREMENT)) % 256) };
 
-  Serial1.write(data);
+  // TODO: set gpio high
+
+  if( this->state == DISABLED ) {
+
+    Serial1.flush();
+
+    this->state = READY;
+  }
 
   return HPMA115_SUCCESS;
 }
 uint32_t HPMA115::disable() {
-  //Send command to shut off
-  const char data[] = {  HPMA115_HEAD, 1, HPMA115_STOP_MEASUREMENT, ((65536-(HPMA115_HEAD+1+HPMA115_STOP_MEASUREMENT)) % 256) };
 
-  Serial1.write(data);
+  // TODO: set gpio low
 
-  return HPMA115_SUCCESS;
-}
+  this->state = DISABLED;
 
-uint32_t HPMA115::read(hpma115_data_t *p_data) {
-  //TODO: take readings read by interrupt, and push them back through pointer
   return HPMA115_SUCCESS;
 }
 
 void HPMA115::int_handler() {
-  Serial.printf("hpma115 int %d", Serial1.available());
-  //TODO: check how many bytes
-  //TODO: if bytes == expected, read
-  //TODO: disable sensor
-  //TODO: call the cb
+
+  // If we are ready, change state
+  if ( this->state == READY && Serial1.available() >= 32 ) {
+    this->state = DATA_AVAILABLE;
+  }
+
+}
+
+void HPMA115::process() {
+
+    // First read
+    while( this->state == DATA_AVAILABLE && Serial1.available() >= 2 ) {
+
+      Serial1.readBytes(this->rx_buf,2);
+
+      // Make sure two header bytes are correct
+      if( this->rx_buf[0] == 0x42 && this->rx_buf[1] == 0x4d ) {
+
+        // Wait for 30 bytes
+        while( Serial1.available() < 30);
+
+        // Then read
+        Serial1.readBytes(this->rx_buf+2,30);
+
+        // Change state
+        this->state = DATA_READ;
+      }
+
+    }
+
+    // Then process
+    if (this->state == DATA_READ) {
+
+      uint16_t calc_checksum = 0;
+
+      // Calculate the checksum
+      for( int i = 0; i < 31; i++ ) {
+        calc_checksum += this->rx_buf[i];
+      }
+
+      // Un-serialize checksum from data
+      uint16_t data_checksum = (this->rx_buf[30] << 8) + this->rx_buf[31];
+
+      // Make sure the calculated and the provided are the same
+      if ( calc_checksum != data_checksum ) {
+        this->state = READY;
+        return;
+      }
+
+      // Combine the serialized data
+      this->data.pm25 = (this->rx_buf[6] << 8) + this->rx_buf[7];
+      this->data.pm10 = (this->rx_buf[8] << 8) + this->rx_buf[9];
+
+      // Callback
+      this->callback(&this->data);
+
+      // Set control pin low.
+      this->disable();
+    }
 }

@@ -37,5 +37,7 @@ uint32_t Si7021::setup() {
     // Then calculate the teperature
     p_data->humidity = ((125 * rh_code) / 0xffff - 6);
 
+    // Serial.printf("hum: %.2f%% temp: %.2f°C\n",p_data->humidity,p_data->temperature);
+
     return SI7021_SUCCESS;
 }

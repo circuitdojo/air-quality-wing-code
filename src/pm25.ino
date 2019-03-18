@@ -9,12 +9,16 @@
 #include "ccs811.h"
 #include "hpma115.h"
 
+// SYSTEM_MODE(MANUAL);
+
 #define I2C_SDA_PIN     D0
 #define I2C_SCL_PIN     D1
 
 #define CCS811_WAKE_PIN D6
 #define CCS811_INT_PIN  D8
 #define CCS811_RST_PIN  D7
+
+#define HPMA1150_EN_PIN D5
 
 // Address for CCS811, it is setable in hardware so should be defined here
 #define CCS811_ADDRESS  0x5a
@@ -47,7 +51,11 @@ void serialEvent1() {
 
 // Async publish event
 void hpma_evt_handler(hpma115_data_t *p_data) {
-  //TODO: publish!
+
+  Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", p_data->pm25, p_data->pm10);
+
+  Particle.publish("pm25", String::format("%d",p_data->pm25), PRIVATE, WITH_ACK);
+  Particle.publish("pm10", String::format("%d",p_data->pm10), PRIVATE, WITH_ACK);
 }
 
 // setup() runs once, when the device is first turned on.
@@ -90,6 +98,7 @@ void setup() {
   // Setup HPMA115
   hpma115_init_t hpma115_init;
   hpma115_init.callback = hpma_evt_handler;
+  hpma115_init.enable_pin = HPMA1150_EN_PIN;
 
   // Init HPM115 sensor
   hpma115.setup(&hpma115_init);
@@ -109,12 +118,13 @@ void loop() {
     uint32_t err_code = si7021.read(&si7021_data);
 
     if( err_code == SI7021_SUCCESS ) {
+      // Set env data in the CCS811
+      ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
+
       // Publish this data
       Particle.publish("temperature", String::format("%.2f",si7021_data.temperature), PRIVATE, WITH_ACK);
       Particle.publish("humidity", String::format("%.2f",si7021_data.humidity), PRIVATE, WITH_ACK);
 
-    } else {
-       Serial.printf("temp/hum not avail\n");
     }
 
     // Process CCS811
@@ -122,10 +132,9 @@ void loop() {
 
     if ( err_code == CCS811_SUCCESS ) {
       // Publish this data
-      Particle.publish("c02", String::format("%.2f",ccs811_data.c02), PRIVATE, WITH_ACK);
-      Particle.publish("tvoc", String::format("%.2f",ccs811_data.tvoc), PRIVATE, WITH_ACK);
-    } else {
-      Serial.printf("tvoc/c02 not avail\n");
+      Particle.publish("c02", String::format("%d",ccs811_data.c02), PRIVATE, WITH_ACK);
+      Particle.publish("tvoc", String::format("%d",ccs811_data.tvoc), PRIVATE, WITH_ACK);
+
     }
 
     // Process PM2.5 and PM10 results
@@ -136,5 +145,11 @@ void loop() {
 
   }
 
-  Particle.process();
+  // Processes any avilable serial data
+  hpma115.process();
+
+  if( Particle.connected ) {
+    Particle.process();
+  }
+
 }
