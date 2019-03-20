@@ -29,8 +29,11 @@
 // I2C Related constants
 #define I2C_CLK_SPEED 100000
 
-// Used to do some basic timing
-static uint32_t last_measurement_ms = 0;
+// Timer handler
+void timer_handler();
+
+// Set up timer
+Timer timer(MEASUREMENT_DELAY_MS, timer_handler);
 
 // Static objects
 static Si7021  si7021 = Si7021();
@@ -40,10 +43,18 @@ static si7021_data_t si7021_data;
 static ccs811_data_t ccs811_data;
 static hpma115_data_t hpma115_data;
 
+// Data check bool
+static bool data_check = false;
+
 // Data state ready
 static bool hpma115_data_ready = false;
 static bool si7021_data_ready = false;
 static bool ccs811_data_ready = false;
+
+// Definition of timer handler
+void timer_handler() {
+  data_check = true;
+}
 
 // ccs811_pin_interrupt() forwards pin interrupt on to the specific handler
 void ccs811_pin_interrupt() {
@@ -62,6 +73,8 @@ void hpma_evt_handler(hpma115_data_t *p_data) {
   // Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", hpma115_data.pm25, hpma115_data.pm10);
 
   hpma115_data_ready = true;
+
+  Serial.println("hpma rdy");
 }
 
 // setup() runs once, when the device is first turned on.
@@ -116,6 +129,9 @@ void setup() {
     System.reset();
   }
 
+  // Start the timer
+  timer.start();
+
 }
 
 // loop() runs over and over again, as quickly as it can execute.
@@ -123,6 +139,8 @@ void loop() {
 
   // If all the data is ready, send it as one data blob
   if (ccs811_data_ready && si7021_data_ready && hpma115_data_ready ) {
+    Serial.println("data send");
+
     String out = String::format("{\"temperature\":%.2f,\"humidity\":%.2f,\"pm25\":%d,\"pm10\":%d,\"tvoc\":%d,\"c02\":%d}",si7021_data.temperature,si7021_data.humidity,hpma115_data.pm25,hpma115_data.pm10,ccs811_data.tvoc,ccs811_data.c02);
     Particle.publish("blob", out , PRIVATE, WITH_ACK);
 
@@ -134,9 +152,10 @@ void loop() {
 
   // If we're greater than or equal to the measurement delay
   // start taking measurements!
-  if( millis()-last_measurement_ms >= MEASUREMENT_DELAY_MS ) {
-    // Reset the timer
-    last_measurement_ms = millis();
+  if( data_check ) {
+
+    // Set state variable to false
+    data_check = false;
 
     // Read temp and humiity
     uint32_t err_code = si7021.read(&si7021_data);
@@ -146,6 +165,9 @@ void loop() {
       ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
 
       si7021_data_ready = true;
+      Serial.println("temp rdy");
+    } else {
+      Serial.println("temp err");
     }
 
     // Process CCS811
@@ -153,6 +175,10 @@ void loop() {
 
     if ( err_code == CCS811_SUCCESS ) {
       ccs811_data_ready = true;
+
+      Serial.println("tvoc rdy");
+    } else {
+      Serial.println("tvoc err");
     }
 
     // Process PM2.5 and PM10 results
@@ -167,7 +193,7 @@ void loop() {
   hpma115.process();
 
   // Send updates/communicate with service when connected
-  if( Particle.connected ) {
+  if( Particle.connected() ) {
     Particle.process();
   }
 
