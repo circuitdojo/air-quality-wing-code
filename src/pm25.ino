@@ -98,6 +98,7 @@ void setup() {
   uint32_t err_code = si7021.setup();
   if( err_code != 0 ) {
     Serial.printf("si7021 setup err %d\n", err_code);
+    Serial.flush();
     System.reset();
   }
 
@@ -113,6 +114,7 @@ void setup() {
   err_code = ccs811.setup(&ccs811_init);
   if( err_code != 0 ) {
     Serial.printf("ccs811 setup err %d\n", err_code);
+    Serial.flush();
     System.reset();
   }
 
@@ -121,6 +123,7 @@ void setup() {
   err_code = ccs811.enable();
   if( err_code != 0 ) {
     Serial.printf("ccs811 enable err %d\n", err_code);
+    Serial.flush();
     System.reset();
   }
 
@@ -133,6 +136,7 @@ void setup() {
   err_code = hpma115.setup(&hpma115_init);
   if (err_code != HPMA115_SUCCESS) {
     Serial.printf("hpma115 enable err %d\n", err_code);
+    Serial.flush();
     System.reset();
   }
 
