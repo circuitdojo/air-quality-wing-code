@@ -109,7 +109,7 @@ void HPMA115::process() {
         if( calc_checksum != data_checksum ) {
           Serial.println("hpma checksum fail");
         } else {
-          Serial.printf("count %d\n", this->rx_count);
+          // Serial.printf("count %d\n", this->rx_count);
         }
 
         this->state = READY;
