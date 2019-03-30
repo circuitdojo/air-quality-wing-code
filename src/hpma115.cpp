@@ -13,6 +13,9 @@ uint32_t HPMA115::setup(hpma115_init_t *p_init) {
   // Set enable pin
   this->enable_pin = p_init->enable_pin;
 
+  // Set rx count to 0
+  this->rx_count = 0;
+
   // Stop device
   this->disable();
 
@@ -69,9 +72,7 @@ void HPMA115::process() {
     // Read remaining bytes
     if( this->state == DATA_READ && Serial1.available() >= 30) {
         // Then read
-        size_t num_bytes = Serial1.readBytes(this->rx_buf+2,30);
-
-        // Serial.printf("num bytes: %d\n", num_bytes);
+        Serial1.readBytes(this->rx_buf+2,30);
 
         // Change state
         this->state = DATA_PROCESS;
@@ -93,7 +94,9 @@ void HPMA115::process() {
       // Serial.printf("%x %x\n",calc_checksum,data_checksum);
 
       // Make sure the calculated and the provided are the same
-      if ( calc_checksum != data_checksum ) {
+      // or, make sure we've collected a few data points before
+      // sending the data
+      if ( (calc_checksum != data_checksum) || (this->rx_count++ < HPMA115_READING_CNT)) {
 
         // Print out data
         // for( int i = 0; i < 32; i++ ) {
@@ -103,11 +106,19 @@ void HPMA115::process() {
         // Erase the rx_buf
         memset(this->rx_buf,0,32);
 
-        Serial.println("hpma checksum fail");
+        if( calc_checksum != data_checksum ) {
+          Serial.println("hpma checksum fail");
+        } else {
+          Serial.printf("count %d\n", this->rx_count);
+        }
+
         this->state = READY;
 
         return;
       }
+
+      // Reset this
+      this->rx_count = 0;
 
       // Combine the serialized data
       this->data.pm25 = (this->rx_buf[6] << 8) + this->rx_buf[7];

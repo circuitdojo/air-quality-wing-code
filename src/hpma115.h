@@ -14,6 +14,8 @@
 #define HPMA115_SUCCESS        0
 #define HPMA115_NO_DATA_AVAIL  2
 
+#define HPMA115_READING_CNT    3
+
 typedef enum {
   READY,
   DATA_AVAILABLE,
@@ -48,6 +50,7 @@ class HPMA115 {
     bool    data_ready;
     volatile hpma115_state_t state;
     uint8_t enable_pin;
+    uint8_t rx_count;
     char rx_buf[32];
 };
 
