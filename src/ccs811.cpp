@@ -45,7 +45,7 @@ uint32_t CCS811::setup( ccs811_init_t * p_init ) {
   Wire.beginTransmission(this->address);
   Wire.write(CCS811_STATUS_REG);
   Wire.endTransmission();  // stop transaction
-  Wire.requestFrom(this->address,1);
+  Wire.requestFrom(this->address,(uint8_t)1);
 
   uint8_t status = Wire.read();
 
@@ -59,8 +59,6 @@ uint32_t CCS811::setup( ccs811_init_t * p_init ) {
 }
 
 uint32_t CCS811::set_env(float temp, float hum) {
-
-  uint32_t err_code;
 
   // Shift left b/c this register is shifted left by 1
   uint16_t hum_conv = (uint16_t)hum << 1;
@@ -78,7 +76,11 @@ uint32_t CCS811::set_env(float temp, float hum) {
   uint16_t temp_conv = (temp_high | temp_low);
 
   // Data to send
-  char data[] = { hum_conv, 0x00, temp_high, temp_low };
+  char data[4];
+
+  // Copy bytes to output
+  memcpy(data,&hum_conv,2);
+  memcpy(data,&temp_conv,2);
 
   // Write this
   Wire.beginTransmission(this->address);
@@ -86,12 +88,13 @@ uint32_t CCS811::set_env(float temp, float hum) {
   Wire.write(data);
   Wire.endTransmission();  // stop transaction
 
+  return CCS811_SUCCESS;
+
 }
 
 uint32_t CCS811::enable(void) {
 
   uint32_t err_code;
-  char data[4];
 
   // Set mode to 10 sec mode & enable int
   Wire.beginTransmission(this->address);
@@ -111,7 +114,7 @@ uint32_t CCS811::enable(void) {
   }
 
   // Flush bytes
-  Wire.requestFrom(this->address, 4); // Read the bytes
+  Wire.requestFrom(this->address, (uint8_t)4); // Read the bytes
   while(Wire.available()) {
     Wire.read();
   }
@@ -131,7 +134,7 @@ uint32_t CCS811::read(ccs811_data_t * p_data) {
       Wire.beginTransmission(this->address);
       Wire.write(CCS811_RESULT_REG); // sends register address
       Wire.endTransmission();  // stop transaction
-      Wire.requestFrom(this->address, 4); // request the bytes
+      Wire.requestFrom(this->address, (uint8_t)4); // request the bytes
 
       // Convert data to something useful
       p_data->c02 = Wire.read();
