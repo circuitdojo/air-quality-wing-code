@@ -21,12 +21,11 @@ uint32_t HPMA115::setup(hpma115_init_t *p_init) {
 
 uint32_t HPMA115::enable(){
 
-  // TODO: set gpio high
+  // set gpio high
+  pinMode(this->enable_pin, OUTPUT);
+  digitalWrite(this->enable_pin, HIGH); // Has a pulldown
 
   if( this->state == DISABLED ) {
-
-    Serial1.flush();
-
     this->state = READY;
   }
 
@@ -34,7 +33,7 @@ uint32_t HPMA115::enable(){
 }
 uint32_t HPMA115::disable() {
 
-  // TODO: set gpio low
+  pinMode(this->enable_pin, INPUT);
 
   this->state = DISABLED;
 

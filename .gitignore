@@ -5,3 +5,4 @@
 *.map
 *.bin*
 pm25.cpp
+*.ipch

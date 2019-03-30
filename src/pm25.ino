@@ -23,8 +23,11 @@
 // Address for CCS811, it is setable in hardware so should be defined here
 #define CCS811_ADDRESS  0x5a
 
+// Watchdog timeout period
+#define WATCHDOG_TIMEOUT_MS 10000
+
 // Delay and timing related contsants
-#define MEASUREMENT_DELAY_MS 60000
+#define MEASUREMENT_DELAY_MS 120000
 
 // I2C Related constants
 #define I2C_CLK_SPEED 100000
@@ -34,6 +37,9 @@ void timer_handler();
 
 // Set up timer
 Timer timer(MEASUREMENT_DELAY_MS, timer_handler);
+
+// Watchdog
+ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
 
 // Static objects
 static Si7021  si7021 = Si7021();
@@ -81,6 +87,7 @@ void hpma_evt_handler(hpma115_data_t *p_data) {
 void setup() {
 
   // Set up PC based UART (for debugging)
+  Serial.blockOnOverrun(false);
   Serial.begin();
 
   // Set up I2C
@@ -196,5 +203,8 @@ void loop() {
   if( Particle.connected() ) {
     Particle.process();
   }
+
+  // Checking with WD
+  wd.checkin();
 
 }
