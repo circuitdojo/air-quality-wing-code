@@ -28,6 +28,7 @@
 
 // Delay and timing related contsants
 #define MEASUREMENT_DELAY_MS 120000
+#define MIN_MEASUREMENT_DELAY_MS 10000
 
 // I2C Related constants
 #define I2C_CLK_SPEED 100000
@@ -35,8 +36,11 @@
 // Timer handler
 void timer_handler();
 
+// Reading delay ms
+static uint32_t m_reading_period = MEASUREMENT_DELAY_MS;
+
 // Set up timer
-Timer timer(MEASUREMENT_DELAY_MS, timer_handler);
+Timer timer(m_reading_period, timer_handler);
 
 // Watchdog
 ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
@@ -83,8 +87,30 @@ void hpma_evt_handler(hpma115_data_t *p_data) {
   Serial.println("hpma rdy");
 }
 
+int set_reading_period( String period ) {
+
+  uint32_t temp_period = (uint32_t)period.toInt();
+
+  if( temp_period != m_reading_period && temp_period > MIN_MEASUREMENT_DELAY_MS ) {
+    Serial.printf("update reading period %d\n",temp_period);
+    m_reading_period = temp_period;
+
+    // Change period if variable is updated
+    timer.changePeriod(m_reading_period);
+
+    return 1;
+
+  }
+
+  return -1;
+
+}
+
 // setup() runs once, when the device is first turned on.
 void setup() {
+
+  // Set up cloud variable
+  Particle.function("set_period", set_reading_period);
 
   // Set up PC based UART (for debugging)
   Serial.blockOnOverrun(false);
