@@ -1,8 +1,9 @@
 /*
- * Project pm25
+ * Project Particle Squared
  * Description: Particle powered PM2.5 and air quality sensor
  * Author: Jared Wolff
  * Date: 2/26/2019
+ * License: GNU GPLv3
  */
 
 #include "si7021.h"
@@ -109,9 +110,6 @@ int set_reading_period( String period ) {
 // setup() runs once, when the device is first turned on.
 void setup() {
 
-  // Set up cloud variable
-  Particle.function("set_period", set_reading_period);
-
   // Set up PC based UART (for debugging)
   Serial.blockOnOverrun(false);
   Serial.begin();
@@ -168,6 +166,10 @@ void setup() {
 
   // Start the timer
   timer.start();
+
+  // Set up cloud variable
+  Particle.function("set_period", set_reading_period);
+
 
 }
 

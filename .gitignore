@@ -4,5 +4,6 @@
 *.lst
 *.map
 *.bin*
-pm25.cpp
+particle-squared.cpp
 *.ipch
+*.dfu

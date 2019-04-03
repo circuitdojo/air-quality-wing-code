@@ -1,3 +1,11 @@
+/*
+ * Project Particle Squared
+ * Description: Particle powered PM2.5 and air quality sensor
+ * Author: Jared Wolff
+ * Date: 2/26/2019
+ * License: GNU GPLv3
+ */
+
 #include "ccs811.h"
 
 CCS811::CCS811() {}
@@ -79,8 +87,8 @@ uint32_t CCS811::set_env(float temp, float hum) {
   char data[4];
 
   // Copy bytes to output
-  memcpy(data,&hum_conv,2);
-  memcpy(data,&temp_conv,2);
+  memcpy(data,&hum_conv,sizeof(uint16_t));
+  memcpy(data,&temp_conv,sizeof(uint16_t));
 
   // Write this
   Wire.beginTransmission(this->address);

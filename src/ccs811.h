@@ -1,3 +1,11 @@
+/*
+ * Project Particle Squared
+ * Description: Particle powered PM2.5 and air quality sensor
+ * Author: Jared Wolff
+ * Date: 2/26/2019
+ * License: GNU GPLv3
+ */
+
 #ifndef CCS811_H
 #define CCS811_H
 
