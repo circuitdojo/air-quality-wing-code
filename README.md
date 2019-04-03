@@ -2,7 +2,9 @@
 
 ![Render](images/render.png)
 
-Particle^2 (pronounced Particle Squared) is a circuit board that helps you monitor the air quality around you. This repository is the code for Particle^2 which enables you to monitor humidity, temperature, air particulates, eC02 and TVOCs in one small package. You can use it with an Adafruit Feather compatible board or the newest mesh enabled boards from Particle.
+Particle^2 (pronounced Particle Squared) is a circuit board that helps you monitor the air quality around you. This repository is the code for Particle^2 which enables you to monitor humidity, temperature, air particulates, eC02 and TVOCs in one small package. You can use it with an Adafruit Feather compatible board or the newest mesh enabled boards from Particle. [For more information click here.](https://www.jaredwolff.com/particle-squared-air-quality-sensor/)
+
+[To get your go here.](https://www.jaredwolff.com/store/particle-squared/)
 
 ## Welcome to your project!
 
