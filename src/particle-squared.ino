@@ -10,7 +10,8 @@
 #include "ccs811.h"
 #include "hpma115.h"
 
-// SYSTEM_MODE(MANUAL);
+SYSTEM_MODE(SEMI_AUTOMATIC);
+SYSTEM_THREAD(ENABLED);
 
 #define I2C_SDA_PIN     D0
 #define I2C_SCL_PIN     D1
@@ -25,7 +26,7 @@
 #define CCS811_ADDRESS  0x5a
 
 // Watchdog timeout period
-#define WATCHDOG_TIMEOUT_MS 10000
+#define WATCHDOG_TIMEOUT_MS 30000
 
 // Delay and timing related contsants
 #define MEASUREMENT_DELAY_MS 120000
@@ -178,6 +179,12 @@ void setup() {
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
+
+  // Connect if not connected..
+  if (Particle.connected() == false) {
+    Serial.println("Not connected..");
+    Particle.connect();
+  }
 
   // If all the data is ready, send it as one data blob
   if (ccs811_data_ready && si7021_data_ready && hpma115_data_ready ) {
