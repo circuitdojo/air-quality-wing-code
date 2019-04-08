@@ -84,16 +84,16 @@ uint32_t CCS811::set_env(float temp, float hum) {
   uint16_t temp_conv = (temp_high | temp_low);
 
   // Data to send
-  char data[4];
+  uint8_t data[4];
 
   // Copy bytes to output
   memcpy(data,&hum_conv,sizeof(uint16_t));
-  memcpy(data,&temp_conv,sizeof(uint16_t));
+  memcpy(data+2,&temp_conv,sizeof(uint16_t));
 
   // Write this
   Wire.beginTransmission(this->address);
   Wire.write(CCS811_ENV_REG);
-  Wire.write(data);
+  Wire.write(data,sizeof(data));
   Wire.endTransmission();  // stop transaction
 
   return CCS811_SUCCESS;
@@ -154,7 +154,7 @@ uint32_t CCS811::read(ccs811_data_t * p_data) {
       // Serial.printf("c02: %dppm tvoc: %dppb\n",p_data->c02,p_data->tvoc);
 
       // If this value is < 400 not ready yet
-      if ( p_data->c02 <= CCS811_MIN_C02_LEVEL ) {
+      if ( p_data->c02 < CCS811_MIN_C02_LEVEL ) {
         return CCS811_NO_DAT_AVAIL;
       }
 
