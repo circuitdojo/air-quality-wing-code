@@ -50,7 +50,7 @@ ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
 static Si7021  si7021 = Si7021();
 static CCS811  ccs811 = CCS811();
 static HPMA115 hpma115 = HPMA115();
-static si7021_data_t si7021_data;
+static si7021_data_t si7021_data, si7021_data_last;
 static ccs811_data_t ccs811_data;
 static hpma115_data_t hpma115_data;
 
@@ -119,6 +119,9 @@ void setup() {
   Wire.begin();
 
   // Set up Si7021;
+  si7021_data_last.humidity = 0;
+  si7021_data_last.temperature = 0;
+
   uint32_t err_code = si7021.setup();
   if( err_code != 0 ) {
     Serial.printf("si7021 setup err %d\n", err_code);
@@ -201,7 +204,21 @@ void loop() {
 
     if( err_code == SI7021_SUCCESS ) {
       // Set env data in the CCS811
+
+      int temp_abs = abs(si7021_data.temperature - si7021_data_last.temperature);
+      int hum_abs = abs(si7021_data.humidity - si7021_data_last.humidity);
+
+      // Change on absolute value > 1
+      if( temp_abs > 1 || hum_abs >  1 ) {
+          Serial.println("change");
+
+          // Set "last" value
+          si7021_data_last.temperature = si7021_data.temperature;
+          si7021_data_last.humidity = si7021_data.humidity;
+
+          // Update the CCS811 environmental params
       ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
+      }
 
       si7021_data_ready = true;
       Serial.println("temp rdy");
