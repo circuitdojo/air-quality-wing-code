@@ -10,8 +10,12 @@
 #include "ccs811.h"
 #include "hpma115.h"
 
+// #define XENON
+
+#ifndef XENON
 SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
+#endif
 
 #define I2C_SDA_PIN     D0
 #define I2C_SCL_PIN     D1
@@ -181,10 +185,17 @@ void setup() {
 void loop() {
 
   // Connect if not connected..
+  #ifdef XENON
+  if (Mesh.ready() == false) {
+    Serial.println("Not connected..");
+    Mesh.connect();
+  }
+  #else
   if (Particle.connected() == false) {
     Serial.println("Not connected..");
     Particle.connect();
   }
+  #endif
 
   // If all the data is ready, send it as one data blob
   if (ccs811_data_ready && si7021_data_ready && hpma115_data_ready ) {
