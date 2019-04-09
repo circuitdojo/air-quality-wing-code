@@ -224,7 +224,7 @@ void loop() {
           si7021_data_last.humidity = si7021_data.humidity;
 
           // Update the CCS811 environmental params
-      ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
+          ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
       }
 
       si7021_data_ready = true;
