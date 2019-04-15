@@ -222,21 +222,7 @@ void loop() {
 
     if( err_code == SI7021_SUCCESS ) {
       // Set env data in the CCS811
-
-      int temp_abs = abs(si7021_data.temperature - si7021_data_last.temperature);
-      int hum_abs = abs(si7021_data.humidity - si7021_data_last.humidity);
-
-      // Change on absolute value > 1
-      if( temp_abs > 1 || hum_abs >  1 ) {
-          Serial.println("change");
-
-          // Set "last" value
-          si7021_data_last.temperature = si7021_data.temperature;
-          si7021_data_last.humidity = si7021_data.humidity;
-
-          // Update the CCS811 environmental params
           ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
-      }
 
       si7021_data_ready = true;
       Serial.println("temp rdy");
