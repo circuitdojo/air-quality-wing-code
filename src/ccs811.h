@@ -16,6 +16,9 @@
 #define CCS811_MEAS_MODE_REG  0x01
 #define CCS811_RESULT_REG     0x02
 #define CCS811_ENV_REG        0x05
+
+#define CCS811_BASELINE_REG   0x11
+
 #define CCS811_HW_ID_REG      0x20
 #define CCS811_START_APP      0xF4
 
@@ -26,6 +29,8 @@
 #define CCS811_FW_MODE_RUN    0x90
 
 #define CCS811_MIN_C02_LEVEL  400
+
+#define CSS811_BASELINE_ADDR  10
 
 // Error codes
 enum {
@@ -55,6 +60,8 @@ class CCS811 {
     uint32_t enable(void);
     uint32_t set_env(float temp, float hum); //set the temp and humidity variables
     uint32_t read(ccs811_data_t * p_data);
+    uint32_t save_baseline();
+    uint32_t restore_baseline();
     void int_handler(void);
   protected:
     uint8_t address;

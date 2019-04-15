@@ -130,6 +130,48 @@ uint32_t CCS811::enable(void) {
 
 }
 
+uint32_t save_baseline() {
+
+  Wire.beginTransmission(this->address);
+  Wire.write(CCS811_BASELINE_REG); // sends register address
+  Wire.endTransmission();  // stop transaction
+  Wire.requestFrom(this->address, (uint8_t)2); // request the bytes
+
+  uint8_t baseline[2];
+  baseline[0] = Wire.read();
+  baseline[1] = Wire.read();
+
+  // Write to the address
+  EEPROM.put(CSS811_BASELINE_ADDR, baseline);
+
+  return NRF_SUCCESS;
+}
+
+uint32_t restore_baseline() {
+
+  uint8_t baseline[2];
+
+  // Get the baseline to the address
+  EEPROM.get(CSS811_BASELINE_ADDR, baseline);
+
+  // If it's uninitialized, return invalid data
+  if ( baseline[0] == 0xff && baseline[1] = 0xff) {
+    return NRF_ERROR_INVALID_DATA;
+  }
+
+  // Write to the chip
+  Wire.beginTransmission(this->address);
+  Wire.write(CCS811_BASELINE_REG); // sends register address
+  Wire.write(baseline[0]);
+  Wire.write(baseline[1]);
+  err_code = Wire.endTransmission();           // stop transaction
+  if( err_code != 0 ){
+    return err_code;
+  }
+
+  return NRF_SUCCESS;
+}
+
 uint32_t CCS811::read(ccs811_data_t * p_data) {
 
   // If the data is ready, read
