@@ -69,26 +69,25 @@ uint32_t CCS811::setup( ccs811_init_t * p_init ) {
 uint32_t CCS811::set_env(float temp, float hum) {
 
   // Shift left b/c this register is shifted left by 1
-  uint16_t hum_conv = (uint16_t)hum << 1;
-
-  // Get the fraction part (typecasting to remove int)
-  float frac_part = temp - (uint16_t)temp;
+  uint8_t hum_conv[2];
+  hum_conv[0] = (uint8_t)hum << 1;
+  hum_conv[1] = 0; // Not bothering with sending fraction
 
   // Serial.printf("temp %.2f", temp);
   // Serial.printf("hum %.2f", hum);
   // Serial.printf("frac %.2f", frac_part);
 
   // Generate the calculated values
-  uint16_t temp_high = (((uint16_t)temp + 25) << 9);
-	uint16_t temp_low = ((uint16_t)(frac_part / (1.0/512)) & 0x1FF);
-  uint16_t temp_conv = (temp_high | temp_low);
+  uint8_t temp_conv[2];
+  temp_conv[0] = (((uint8_t)temp + 25) << 1);
+	temp_conv[1] = 0; // Not bothering with sending fraction
 
   // Data to send
   uint8_t data[4];
 
   // Copy bytes to output
-  memcpy(data,&hum_conv,sizeof(uint16_t));
-  memcpy(data+2,&temp_conv,sizeof(uint16_t));
+  memcpy(data,&hum_conv,sizeof(hum_conv));
+  memcpy(data+2,&temp_conv,sizeof(temp_conv));
 
   // Write this
   Wire.beginTransmission(this->address);
