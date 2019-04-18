@@ -10,9 +10,7 @@
 #include "ccs811.h"
 #include "hpma115.h"
 
-// #define XENON
-
-#ifndef XENON
+#if PLATFORM_ID == PLATFORM_XENON
 SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 #endif
@@ -185,7 +183,7 @@ void setup() {
 void loop() {
 
   // Connect if not connected..
-  #ifdef XENON
+  #if PLATFORM_ID == PLATFORM_XENON
   if (Mesh.ready() == false) {
     Serial.println("Not connected..");
     Mesh.connect();
@@ -247,6 +245,16 @@ void loop() {
     // (extends the life of the device)
     hpma115.enable();
 
+  }
+
+  // Save the baseline if we're > 24hr
+  uint32_t days_calc = System.uptime()/60/60/24;
+  if( days_calc != m_day_counter) {
+
+    //Update the counter
+    m_day_counter = days_calc;
+
+    ccs811.save_baseline();
   }
 
   // Processes any avilable serial data

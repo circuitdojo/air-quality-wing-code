@@ -130,7 +130,7 @@ uint32_t CCS811::enable(void) {
 
 }
 
-uint32_t save_baseline() {
+uint32_t CCS811::save_baseline() {
 
   Wire.beginTransmission(this->address);
   Wire.write(CCS811_BASELINE_REG); // sends register address
@@ -147,15 +147,16 @@ uint32_t save_baseline() {
   return NRF_SUCCESS;
 }
 
-uint32_t restore_baseline() {
+uint32_t CCS811::restore_baseline() {
 
+  uint32_t err_code;
   uint8_t baseline[2];
 
   // Get the baseline to the address
   EEPROM.get(CSS811_BASELINE_ADDR, baseline);
 
   // If it's uninitialized, return invalid data
-  if ( baseline[0] == 0xff && baseline[1] = 0xff) {
+  if ( baseline[0] == 0xff && baseline[1] == 0xff) {
     return NRF_ERROR_INVALID_DATA;
   }
 
