@@ -7,3 +7,5 @@
 particle-squared.cpp
 *.ipch
 *.dfu
+*.o
+*.d
