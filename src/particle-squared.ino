@@ -113,6 +113,10 @@ int set_reading_period( String period ) {
 // setup() runs once, when the device is first turned on.
 void setup() {
 
+  // Turn off the LED
+  // RGB.control(true);
+  // RGB.brightness(0);
+
   // Set up PC based UART (for debugging)
   Serial.blockOnOverrun(false);
   Serial.begin();
