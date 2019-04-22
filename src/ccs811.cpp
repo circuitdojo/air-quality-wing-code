@@ -142,7 +142,7 @@ uint32_t CCS811::save_baseline() {
   baseline[1] = Wire.read();
 
   // Write to the address
-  EEPROM.put(CSS811_BASELINE_ADDR, baseline);
+  EEPROM.put(CCS811_BASELINE_ADDR, baseline);
 
   return NRF_SUCCESS;
 }

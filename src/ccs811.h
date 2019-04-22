@@ -30,7 +30,7 @@
 
 #define CCS811_MIN_C02_LEVEL  400
 
-#define CSS811_BASELINE_ADDR  10
+#define CCS811_BASELINE_ADDR  10
 
 // Error codes
 enum {
