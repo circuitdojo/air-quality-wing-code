@@ -35,6 +35,7 @@ SYSTEM_THREAD(ENABLED);
 // Delay and timing related contsants
 #define MEASUREMENT_DELAY_MS 120000
 #define MIN_MEASUREMENT_DELAY_MS 10000
+#define HPMA_TIMEOUT_MS 10000
 
 // I2C Related constants
 #define I2C_CLK_SPEED 100000
@@ -47,6 +48,7 @@ static uint32_t m_reading_period = MEASUREMENT_DELAY_MS;
 
 // Set up timer
 Timer timer(m_reading_period, timer_handler);
+Timer hpmatimer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
 
 // Watchdog
 ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
@@ -75,6 +77,15 @@ void timer_handler() {
   data_check = true;
 }
 
+// This fires after the hpma should have finished...
+void hpma_timeout_handler() {
+  if( hpma115.is_enabled() ) {
+    Serial.println("hpma timeout");
+    Particle.publish("err", "hpma timeout" , PRIVATE, NO_ACK);
+    hpma115.disable();
+  }
+}
+
 // ccs811_pin_interrupt() forwards pin interrupt on to the specific handler
 void ccs811_pin_interrupt() {
   ccs811.int_handler();
@@ -87,6 +98,14 @@ void serialEvent1() {
 
 // Async publish event
 void hpma_evt_handler(hpma115_data_t *p_data) {
+
+  // Disable HPMA
+  #ifdef HAS_HPMA
+  hpma115.disable();
+  hpmatimer.stop();
+  #endif
+
+  // Copy the data.
   hpma115_data = *p_data;
 
   // Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", hpma115_data.pm25, hpma115_data.pm10);
@@ -100,7 +119,7 @@ int set_reading_period( String period ) {
 
   uint32_t temp_period = (uint32_t)period.toInt();
 
-  if( temp_period != m_reading_period && temp_period > MIN_MEASUREMENT_DELAY_MS ) {
+  if( temp_period != m_reading_period && temp_period >= MIN_MEASUREMENT_DELAY_MS ) {
     Serial.printf("update reading period %d\n",temp_period);
     m_reading_period = temp_period;
 
@@ -227,6 +246,11 @@ void loop() {
     // Set state variable to false
     data_check = false;
 
+    // Disable HPMA
+    #ifdef HAS_HPMA
+    hpma115.disable();
+    #endif
+
     // Read temp and humiity
     uint32_t err_code = si7021.read(&si7021_data);
 
@@ -237,6 +261,7 @@ void loop() {
       si7021_data_ready = true;
       Serial.println("temp rdy");
     } else {
+      Particle.publish("err", "temp" , PRIVATE, NO_ACK);
       Serial.println("temp err");
     }
 
@@ -248,6 +273,7 @@ void loop() {
 
       Serial.println("tvoc rdy");
     } else {
+      Particle.publish("err", "tvoc" , PRIVATE, NO_ACK);
       Serial.println("tvoc err");
     }
 
@@ -257,6 +283,7 @@ void loop() {
     // (extends the life of the device)
     #ifdef HAS_HPMA
     hpma115.enable();
+    hpmatimer.start();
     #else
     hpma115_data_ready = true;
     #endif

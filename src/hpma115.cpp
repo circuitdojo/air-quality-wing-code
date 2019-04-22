@@ -76,6 +76,10 @@ void HPMA115::process() {
     // First read
     if( this->state == DATA_AVAILABLE && Serial1.available() >= 2 ) {
 
+      // Erase the rx_buf
+      memset(this->rx_buf,0,32);
+
+      // Read first bytes in
       Serial1.readBytes(this->rx_buf,2);
 
       // Make sure two header bytes are correct
@@ -116,25 +120,19 @@ void HPMA115::process() {
       // Make sure the calculated and the provided are the same
       // or, make sure we've collected a few data points before
       // sending the data
-      if ( (calc_checksum != data_checksum) || (this->rx_count++ < HPMA115_READING_CNT)) {
+      if ( calc_checksum != data_checksum ) {
 
-        // Print out data
-        // for( int i = 0; i < 32; i++ ) {
-        //   Serial.printf("%x ", this->rx_buf[i]);
-        // }
-
-        // Erase the rx_buf
-        memset(this->rx_buf,0,32);
-
-        if( calc_checksum != data_checksum ) {
-          Serial.println("hpma checksum fail");
-          Particle.publish("err", "cs" , PRIVATE, NO_ACK);
-        } else {
-          // Serial.printf("count %d\n", this->rx_count);
-        }
+        Serial.println("hpma checksum fail");
+        Particle.publish("err", "cs" , PRIVATE, NO_ACK);
 
         this->state = READY;
 
+        return;
+      }
+
+      // Take another reading. Minimum of HPMA115_READING_CNT readings
+      if ( this->rx_count++ < HPMA115_READING_CNT ) {
+        this->state = READY;
         return;
       }
 
@@ -144,9 +142,6 @@ void HPMA115::process() {
       // Combine the serialized data
       this->data.pm25 = (this->rx_buf[6] << 8) + this->rx_buf[7];
       this->data.pm10 = (this->rx_buf[8] << 8) + this->rx_buf[9];
-
-      // Erase the rx_buf
-      memset(this->rx_buf,0,32);
 
       // Callback
       this->callback(&this->data);
