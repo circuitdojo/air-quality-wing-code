@@ -44,9 +44,12 @@ uint32_t HPMA115::enable(){
 }
 uint32_t HPMA115::disable() {
 
+  // Disable device
   pinMode(this->enable_pin, INPUT);
-
   this->state = DISABLED;
+
+  // Reset rx count
+  this->rx_count = 0;
 
   return HPMA115_SUCCESS;
 }
@@ -79,31 +82,28 @@ void HPMA115::process() {
       // Erase the rx_buf
       memset(this->rx_buf,0,32);
 
-      // Read first bytes in
-      Serial1.readBytes(this->rx_buf,2);
+      // Read first byte in
+      this->rx_buf[0] = Serial1.read();
 
-      // Make sure two header bytes are correct
-      if( this->rx_buf[0] == 0x42 && this->rx_buf[1] == 0x4d ) {
-        // Serial.println("header ok");
-        this->state = DATA_READ;
-      } else {
+      // Make sure first byte is equal otherwise return
+      if( this->rx_buf[0] != 0x42 ) {
         return;
-        // Serial.println("header not valid");
+      }
+
+      // Reaad the second byte in
+      this->rx_buf[1] = Serial1.read();
+
+      // Confirm its value
+      if( this->rx_buf[1] == 0x4d ) {
+        this->state = DATA_READ;
       }
 
     }
 
     // Read remaining bytes
     if( this->state == DATA_READ && Serial1.available() >= 30) {
-        // Then read
-        Serial1.readBytes(this->rx_buf+2,30);
-
-        // Change state
-        this->state = DATA_PROCESS;
-    }
-
-    // Then process
-    if (this->state == DATA_PROCESS) {
+      // Then read
+      Serial1.readBytes(this->rx_buf+2,30);
 
       uint16_t calc_checksum = 0;
 
@@ -122,17 +122,26 @@ void HPMA115::process() {
       // sending the data
       if ( calc_checksum != data_checksum ) {
 
-        Serial.println("hpma checksum fail");
-        Particle.publish("err", "cs" , PRIVATE, NO_ACK);
+        Serial.println("hpma: checksum fail");
+        Particle.publish("err", "hpma: checksum" , PRIVATE, NO_ACK);
 
         this->state = READY;
-
         return;
       }
 
+      // Increment the valid rx count
+      this->rx_count++;
+
       // Take another reading. Minimum of HPMA115_READING_CNT readings
-      if ( this->rx_count++ < HPMA115_READING_CNT ) {
-        this->state = READY;
+      if ( this->rx_count < HPMA115_READING_CNT ) {
+
+        // Go right to read or go to ready state if no data
+        if( Serial1.available() > 0 ) {
+          this->state = DATA_AVAILABLE;
+        } else {
+          this->state = READY;
+        }
+
         return;
       }
 
@@ -145,6 +154,9 @@ void HPMA115::process() {
 
       // Callback
       this->callback(&this->data);
+
+      // State is back to ready
+      this->state = READY;
 
     }
 }

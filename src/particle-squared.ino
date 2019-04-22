@@ -221,7 +221,6 @@ void loop() {
   }
   #else
   if (Particle.connected() == false) {
-    Serial.println("Not connected..");
     Particle.connect();
   }
   #endif
