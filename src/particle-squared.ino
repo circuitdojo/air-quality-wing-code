@@ -10,7 +10,9 @@
 #include "ccs811.h"
 #include "hpma115.h"
 
-#if PLATFORM_ID == PLATFORM_XENON
+#define HAS_HPMA
+
+#if PLATFORM_ID != PLATFORM_XENON
 SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 #endif
@@ -28,7 +30,7 @@ SYSTEM_THREAD(ENABLED);
 #define CCS811_ADDRESS  0x5a
 
 // Watchdog timeout period
-#define WATCHDOG_TIMEOUT_MS 30000
+#define WATCHDOG_TIMEOUT_MS 120000
 
 // Delay and timing related contsants
 #define MEASUREMENT_DELAY_MS 120000
@@ -64,6 +66,9 @@ static bool data_check = false;
 static bool hpma115_data_ready = false;
 static bool si7021_data_ready = false;
 static bool ccs811_data_ready = false;
+
+// State of baseline
+static uint32_t m_day_counter = 0;
 
 // Definition of timer handler
 void timer_handler() {
@@ -151,6 +156,9 @@ void setup() {
     Serial.flush();
     System.reset();
   }
+
+  // Restore the baseline
+  ccs811.restore_baseline();
 
   // Start VOC measurement
   // This is an async reading.
@@ -247,13 +255,17 @@ void loop() {
     // This is slightly different from the other readings
     // due to the fact that it should be shut off when not taking a reading
     // (extends the life of the device)
+    #ifdef HAS_HPMA
     hpma115.enable();
+    #else
+    hpma115_data_ready = true;
+    #endif
 
   }
 
   // Save the baseline if we're > 24hr
   uint32_t days_calc = System.uptime()/60/60/24;
-  if( days_calc != m_day_counter) {
+  if( days_calc > m_day_counter) {
 
     //Update the counter
     m_day_counter = days_calc;
