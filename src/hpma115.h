@@ -50,6 +50,7 @@ class HPMA115 {
     uint32_t setup(hpma115_init_t *p_init);
     uint32_t enable();
     uint32_t disable();
+    bool is_enabled();
     void process();
     void int_handler(void);
   protected:

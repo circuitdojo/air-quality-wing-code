@@ -60,6 +60,17 @@ void HPMA115::int_handler() {
 
 }
 
+bool HPMA115::is_enabled() {
+
+  // If we are ready, change state
+  if ( getPinMode(this->enable_pin) == OUTPUT ) {
+    return true;
+  } else {
+    return false;
+  }
+
+}
+
 void HPMA115::process() {
 
     // First read
@@ -72,6 +83,7 @@ void HPMA115::process() {
         // Serial.println("header ok");
         this->state = DATA_READ;
       } else {
+        return;
         // Serial.println("header not valid");
       }
 
@@ -116,6 +128,7 @@ void HPMA115::process() {
 
         if( calc_checksum != data_checksum ) {
           Serial.println("hpma checksum fail");
+          Particle.publish("err", "cs" , PRIVATE, NO_ACK);
         } else {
           // Serial.printf("count %d\n", this->rx_count);
         }
@@ -138,7 +151,5 @@ void HPMA115::process() {
       // Callback
       this->callback(&this->data);
 
-      // Set control pin low.
-      this->disable();
     }
 }
