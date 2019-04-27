@@ -9,25 +9,12 @@
 #include "si7021.h"
 #include "ccs811.h"
 #include "hpma115.h"
-
-#define HAS_HPMA
+#include "board.h"
 
 #if PLATFORM_ID != PLATFORM_XENON
 SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 #endif
-
-#define I2C_SDA_PIN     D0
-#define I2C_SCL_PIN     D1
-
-#define CCS811_WAKE_PIN D6
-#define CCS811_INT_PIN  D8
-#define CCS811_RST_PIN  D7
-
-#define HPMA1150_EN_PIN D5
-
-// Address for CCS811, it is setable in hardware so should be defined here
-#define CCS811_ADDRESS  0x5a
 
 // Watchdog timeout period
 #define WATCHDOG_TIMEOUT_MS 120000
@@ -36,9 +23,6 @@ SYSTEM_THREAD(ENABLED);
 #define MEASUREMENT_DELAY_MS 120000
 #define MIN_MEASUREMENT_DELAY_MS 10000
 #define HPMA_TIMEOUT_MS 10000
-
-// I2C Related constants
-#define I2C_CLK_SPEED 100000
 
 // Timer handler
 void timer_handler();
