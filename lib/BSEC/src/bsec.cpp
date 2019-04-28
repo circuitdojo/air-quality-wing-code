@@ -133,7 +133,7 @@ void Bsec::beginCommon(void)
 	status = bsec_init();
 
 	getVersion();
-	
+
 	bme680Status = bme680_init(&_bme680);
 }
 
@@ -164,9 +164,9 @@ bool Bsec::run(void)
 	bool newData = false;
 	/* Check if the time has arrived to call do_steps() */
 	int64_t callTimeMs = getTimeMs();
-	
+
 	if (callTimeMs >= nextCall) {
-	
+
 		bsec_bme_settings_t bme680Settings;
 
 		int64_t callTimeNs = callTimeMs * INT64_C(1000000);
@@ -193,9 +193,9 @@ bool Bsec::run(void)
 		bme680_get_profile_dur(&meas_dur, &_bme680);
 		delay_ms(meas_dur);
 
-		newData = readProcessData(callTimeNs, bme680Settings);	
+		newData = readProcessData(callTimeNs, bme680Settings);
 	}
-	
+
 	return newData;
 }
 
@@ -255,7 +255,7 @@ bool Bsec::readProcessData(int64_t currTimeNs, bsec_bme_settings_t bme680Setting
 	if (_data.status & BME680_NEW_DATA_MSK) {
 		if (bme680Settings.process_data & BSEC_PROCESS_TEMPERATURE) {
 			inputs[nInputs].sensor_id = BSEC_INPUT_TEMPERATURE;
-			inputs[nInputs].signal = _data.temperature;
+			inputs[nInputs].signal = _data.temperature/100.0f; // Need to divide by 100 for fp
 			inputs[nInputs].time_stamp = currTimeNs;
 			nInputs++;
 			/* Temperature offset from the real temperature due to external heat sources */
@@ -265,7 +265,7 @@ bool Bsec::readProcessData(int64_t currTimeNs, bsec_bme_settings_t bme680Setting
 			nInputs++;
 		}
 		if (bme680Settings.process_data & BSEC_PROCESS_HUMIDITY) {
-			inputs[nInputs].sensor_id = BSEC_INPUT_HUMIDITY;
+			inputs[nInputs].sensor_id = BSEC_INPUT_HUMIDITY/1000.0f; // Need to divide by 1000 for fp
 			inputs[nInputs].signal = _data.humidity;
 			inputs[nInputs].time_stamp = currTimeNs;
 			nInputs++;
@@ -476,7 +476,7 @@ int8_t Bsec::spiTransfer(uint8_t devId, uint8_t regAddr, uint8_t *regData, uint1
 	int8_t rslt = 0;
 	if(Bsec::spiObj) {
 		Bsec::spiObj->beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0)); // Can be upto 10MHz
-	
+
 		digitalWrite(devId, LOW);
 
 		Bsec::spiObj->transfer(regAddr); // Write the register address, ignore the return
