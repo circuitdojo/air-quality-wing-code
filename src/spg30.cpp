@@ -7,6 +7,7 @@
  */
 
 #include "SPG30.h"
+#include "crc8_dallas.h"
 
 SPG30::SPG30() {}
 
@@ -193,11 +194,36 @@ uint32_t SPG30::process() {
       return SPG30_COMM_ERR;
     }
 
-    // Convert data to something useful
-    this->data.c02 = (Wire.read()<<8) + Wire.read();
-    this->data.tvoc = (Wire.read()<<8) + Wire.read();
+    // Read temp c02 data and get CRC
+    uint16_t temp_c02 = (Wire.read()<<8) + Wire.read();
+    uint8_t  c02_crc_calc = crc8_dallas_little((uint8_t*)&temp_c02,2);
+    uint8_t  c02_crc = Wire.read();
 
-    Serial.printf("spg30 c02: %dppm tvoc: %dppb\n",this->data.c02,this->data.tvoc);
+    // Read temp tvoc data and get CRC
+    uint16_t temp_tvoc = (Wire.read()<<8) + Wire.read();
+    uint8_t  tvoc_crc_calc = crc8_dallas_little((uint8_t*)&temp_tvoc,2);
+    uint8_t  tvoc_crc = Wire.read();
+
+    // Return if CRC is incorrect
+    if( c02_crc != c02_crc_calc ) {
+      Serial.printf("c02 crc fail %x %x\n", c02_crc, c02_crc_calc);
+      return SPG30_DATA_ERR;
+    }
+
+    // Return if tvoc does not match
+    if( tvoc_crc != tvoc_crc_calc ) {
+      Serial.printf("tvoc crc fail %x %x\n", tvoc_crc, tvoc_crc_calc);
+      return SPG30_DATA_ERR;
+    }
+
+    // Convert data to something useful
+    this->data.c02 = temp_c02;
+
+    // Read TVOC
+    this->data.tvoc = temp_tvoc;
+
+    // Print results
+    // Serial.printf("spg30 c02: %dppm tvoc: %dppb\n",this->data.c02,this->data.tvoc);
 
     // data is ready!
     this->data_available = true;

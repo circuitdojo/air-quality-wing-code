@@ -24,7 +24,8 @@ enum {
   SPG30_NULL_ERROR,
   SPG30_NO_DAT_AVAIL,
   SPG30_RUN_ERROR,
-  SPG30_COMM_ERR
+  SPG30_COMM_ERR,
+  SPG30_DATA_ERR
 };
 
 typedef struct {
