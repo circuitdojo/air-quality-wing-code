@@ -15,7 +15,6 @@
 
 #if PLATFORM_ID != PLATFORM_XENON
 SYSTEM_MODE(SEMI_AUTOMATIC);
-SYSTEM_THREAD(ENABLED);
 #endif
 
 // Watchdog timeout period
@@ -83,7 +82,6 @@ void hpma_timeout_handler() {
     hpma115.disable();
   }
 
-  m_out = String( m_out + "}" );
   m_data_ready = true;
 }
 
@@ -112,7 +110,7 @@ void hpma_evt_handler(hpma115_data_t *p_data) {
   // Serial.printf("pm25 %dμg/m3 pm10 %dμg/m3\n", hpma115_data.pm25, hpma115_data.pm10);
 
   // Concat the data into the json blob
-  m_out = String( m_out + String::format(",\"pm25\":%d}", hpma115_data.pm25) );
+  m_out = String( m_out + String::format(",\"pm25\":%d,\"pm10\":%d", hpma115_data.pm25,hpma115_data.pm10) );
 
   // Set the data ready!
   m_data_ready = true;
@@ -300,6 +298,9 @@ void loop() {
   if ( m_data_ready ) {
     Serial.println("data send");
 
+    // Cap off the JSON
+    m_out = String( m_out + "}");
+
     // Publish data
     Particle.publish("blob", m_out , PRIVATE, WITH_ACK);
 
@@ -384,7 +385,6 @@ void loop() {
     hpma115.enable();
     hpma_timer.start();
     #else
-    m_out = String( m_out + "}");
     m_data_ready = true;
     #endif
 
