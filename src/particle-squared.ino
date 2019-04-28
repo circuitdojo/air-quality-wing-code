@@ -11,6 +11,7 @@
 #include "hpma115.h"
 #include "spg30.h"
 #include "board.h"
+#include "bsec.h"
 
 #if PLATFORM_ID != PLATFORM_XENON
 SYSTEM_MODE(SEMI_AUTOMATIC);
@@ -36,6 +37,7 @@ static Si7021  si7021 = Si7021();
 static CCS811  ccs811 = CCS811();
 static HPMA115 hpma115 = HPMA115();
 static SPG30   spg30 = SPG30();
+static Bsec    bsec = Bsec();
 
 // Set up timer
 Timer timer(m_reading_period, timer_handler);
@@ -56,6 +58,7 @@ static bool data_check = false;
 
 // Data state ready
 static bool m_data_ready = false;
+static bool m_bme680_ready = false;
 
 // State of baseline
 static uint32_t m_day_counter = 0;
@@ -136,6 +139,39 @@ int set_reading_period( String period ) {
 
 }
 
+// Helper function definitions
+void checkIaqSensorStatus(void)
+{
+
+  String output;
+
+  if (bsec.status != BSEC_OK) {
+    if (bsec.status < BSEC_OK) {
+      output = "BSEC error code :" + String(bsec.status);
+      Serial.println(output);
+      Serial.flush();
+      System.reset();
+    } else {
+      output = "BSEC warning code : " + String(bsec.status);
+      Serial.println(output);
+      Serial.flush();
+    }
+  }
+
+  if (bsec.bme680Status != BME680_OK) {
+    if (bsec.bme680Status < BME680_OK) {
+      output = "BME680 error code : " + String(bsec.bme680Status);
+      Serial.println(output);
+      Serial.flush();
+      System.reset();
+    } else {
+      output = "BME680 warning code : " + String(bsec.bme680Status);
+      Serial.println(output);
+      Serial.flush();
+    }
+  }
+}
+
 // setup() runs once, when the device is first turned on.
 void setup() {
 
@@ -196,6 +232,7 @@ void setup() {
   if( err_code != SPG30_SUCCESS ) {
     Serial.printf("spg30 setup err %d\n", err_code);
     Serial.flush();
+    System.reset();
   }
 
   spg30_timer.start();
@@ -215,6 +252,22 @@ void setup() {
     System.reset();
   }
   #endif
+
+  // Begin BME680 work
+  bsec.begin(BME680_I2C_ADDR_PRIMARY, Wire);
+  checkIaqSensorStatus();
+
+  // Set up BME680 sensors
+  bsec_virtual_sensor_t sensorList[5] = {
+    BSEC_OUTPUT_RAW_TEMPERATURE,
+    BSEC_OUTPUT_RAW_PRESSURE,
+    BSEC_OUTPUT_RAW_HUMIDITY,
+    BSEC_OUTPUT_RAW_GAS,
+    BSEC_OUTPUT_IAQ,
+  };
+
+  bsec.updateSubscription(sensorList, 5, BSEC_SAMPLE_RATE_CONTINUOUS); //BSEC_SAMPLE_RATE_LP
+  checkIaqSensorStatus();
 
   // Start the timer
   timer.start();
@@ -309,6 +362,16 @@ void loop() {
     }
     #endif
 
+    // bme680 data publish!
+    if (m_bme680_ready) {
+      m_bme680_ready = false;
+      Serial.println("bme680 rdy");
+      m_out = String( m_out + String::format(",\"bme680_temp\":%d,\"bme680_pres\":%d", bsec.temperature, bsec.pressure) );
+      m_out = String( m_out + String::format(",\"bme680_hum\":%d,\"bme680_iaq\":%d", bsec.humidity, bsec.iaqEstimate) );
+    } else {
+      Serial.println("bme680 err");
+    }
+
     // Process PM2.5 and PM10 results
     // This is slightly different from the other readings
     // due to the fact that it should be shut off when not taking a reading
@@ -343,6 +406,13 @@ void loop() {
   #endif
 
   hpma115.process();
+
+  // Proces BME680
+  if (bsec.run()) { // If new data is available
+    m_bme680_ready = true;
+  } else {
+    checkIaqSensorStatus();
+  }
 
   // Send updates/communicate with service when connected
   if( Particle.connected() ) {
