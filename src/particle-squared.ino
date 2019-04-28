@@ -254,6 +254,7 @@ void setup() {
   #endif
 
   // Begin BME680 work
+  #ifdef HAS_BME680
   bsec.begin(BME680_I2C_ADDR_PRIMARY, Wire);
   checkIaqSensorStatus();
 
@@ -268,6 +269,7 @@ void setup() {
 
   bsec.updateSubscription(sensorList, 5, BSEC_SAMPLE_RATE_CONTINUOUS); //BSEC_SAMPLE_RATE_LP
   checkIaqSensorStatus();
+  #endif
 
   // Start the timer
   timer.start();
@@ -363,6 +365,7 @@ void loop() {
     #endif
 
     // bme680 data publish!
+    #ifdef HAS_BME680
     if (m_bme680_ready) {
       m_bme680_ready = false;
       Serial.println("bme680 rdy");
@@ -371,6 +374,7 @@ void loop() {
     } else {
       Serial.println("bme680 err");
     }
+    #endif
 
     // Process PM2.5 and PM10 results
     // This is slightly different from the other readings
@@ -408,11 +412,13 @@ void loop() {
   hpma115.process();
 
   // Proces BME680
+  #ifdef HAS_BME680
   if (bsec.run()) { // If new data is available
     m_bme680_ready = true;
   } else {
     checkIaqSensorStatus();
   }
+  #endif
 
   // Send updates/communicate with service when connected
   if( Particle.connected() ) {
