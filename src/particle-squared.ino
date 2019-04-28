@@ -9,6 +9,7 @@
 #include "si7021.h"
 #include "ccs811.h"
 #include "hpma115.h"
+#include "spg30.h"
 #include "board.h"
 
 #if PLATFORM_ID != PLATFORM_XENON
@@ -30,20 +31,25 @@ void timer_handler();
 // Reading delay ms
 static uint32_t m_reading_period = MEASUREMENT_DELAY_MS;
 
-// Set up timer
-Timer timer(m_reading_period, timer_handler);
-Timer hpma_timer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
-
-// Watchdog
-ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
-
 // Static objects
 static Si7021  si7021 = Si7021();
 static CCS811  ccs811 = CCS811();
 static HPMA115 hpma115 = HPMA115();
+static SPG30   spg30 = SPG30();
+
+// Set up timer
+Timer timer(m_reading_period, timer_handler);
+Timer hpma_timer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
+Timer spg30_timer(SPG30_READ_INTERVAL, spg30_timer_handler);
+
+// Watchdog
+ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
+
+// Data
 static si7021_data_t si7021_data, si7021_data_last;
 static ccs811_data_t ccs811_data;
 static hpma115_data_t hpma115_data;
+static spg30_data_t spg30_data;
 
 // Data check bool
 static bool data_check = false;
@@ -55,6 +61,11 @@ static bool m_data_ready = false;
 static uint32_t m_day_counter = 0;
 
 static String m_out;
+
+// Definition of timer handler
+void spg30_timer_handler() {
+  spg30.set_ready();
+}
 
 // Definition of timer handler
 void timer_handler() {
@@ -179,6 +190,16 @@ void setup() {
     System.reset();
   }
 
+  // SPG30 setup
+  #ifdef HAS_SPG30
+  err_code = spg30.setup();
+  if( err_code != SPG30_SUCCESS ) {
+    Serial.printf("spg30 setup err %d\n", err_code);
+    Serial.flush();
+  }
+
+  spg30_timer.start();
+  #endif
 
   #ifdef HAS_HPMA
   // Setup HPMA115
@@ -200,7 +221,6 @@ void setup() {
 
   // Set up cloud variable
   Particle.function("set_period", set_reading_period);
-
 
 }
 
@@ -252,7 +272,7 @@ void loop() {
 
     if( err_code == SI7021_SUCCESS ) {
       // Set env data in the CCS811
-          ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
+      ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
 
       // Concatinate temp and humidity data
       m_out = String( m_out + String::format("\"temperature\":%.2f,\"humidity\":%.2f",si7021_data.temperature, si7021_data.humidity) );
@@ -268,12 +288,26 @@ void loop() {
     if ( err_code == CCS811_SUCCESS ) {
 
       // Concatinate ccs811 tvoc
-      m_out = String( m_out + String::format(",\"tvoc\":%d", ccs811_data.tvoc) );
+      m_out = String( m_out + String::format(",\"tvoc\":%d,\"c02\":%d", ccs811_data.tvoc, ccs811_data.c02) );
       Serial.println("tvoc rdy");
     } else {
       Particle.publish("err", "tvoc" , PRIVATE, NO_ACK);
       Serial.println("tvoc err");
     }
+
+    #ifdef HAS_SPG30
+    err_code = spg30.read(&spg30_data);
+
+    if ( err_code == SPG30_SUCCESS ) {
+
+      // concatinate spg30 data
+      m_out = String( m_out + String::format(",\"spg30_tvoc\":%d,\"spg30_c02\":%d", spg30_data.tvoc, spg30_data.c02) );
+      Serial.println("spg30 rdy");
+    } else {
+      Particle.publish("err", "spg30" , PRIVATE, NO_ACK);
+      Serial.println("spg30 err");
+    }
+    #endif
 
     // Process PM2.5 and PM10 results
     // This is slightly different from the other readings
@@ -299,7 +333,15 @@ void loop() {
     ccs811.save_baseline();
   }
 
+  #ifdef HAS_SPG30
   // Processes any avilable serial data
+  err_code = spg30.process();
+
+  if( err_code != SPG30_SUCCESS ) {
+    Serial.println("sp30 process error");
+  }
+  #endif
+
   hpma115.process();
 
   // Send updates/communicate with service when connected
