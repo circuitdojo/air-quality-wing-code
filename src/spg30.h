@@ -18,6 +18,9 @@
 
 #define SPG30_READ_INTERVAL   1000
 
+#define SPG30_C02_BASELINE_ADDR  20
+#define SPG30_TVOC_BASELINE_ADDR 22
+
 // Error codes
 enum {
   SPG30_SUCCESS,
@@ -44,6 +47,8 @@ class SPG30 {
     uint32_t restore_baseline();
     uint32_t process();
     void     set_ready();
+  private:
+    uint32_t read_data_check_crc(uint16_t * data);
   protected:
     spg30_data_t data;
     bool ready, data_available;
