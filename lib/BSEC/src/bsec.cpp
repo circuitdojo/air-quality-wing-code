@@ -265,8 +265,8 @@ bool Bsec::readProcessData(int64_t currTimeNs, bsec_bme_settings_t bme680Setting
 			nInputs++;
 		}
 		if (bme680Settings.process_data & BSEC_PROCESS_HUMIDITY) {
-			inputs[nInputs].sensor_id = BSEC_INPUT_HUMIDITY/1000.0f; // Need to divide by 1000 for fp
-			inputs[nInputs].signal = _data.humidity;
+			inputs[nInputs].sensor_id = BSEC_INPUT_HUMIDITY;
+			inputs[nInputs].signal = _data.humidity/1000.0f; // Need to divide by 1000 for fp;
 			inputs[nInputs].time_stamp = currTimeNs;
 			nInputs++;
 		}
