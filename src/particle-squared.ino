@@ -376,8 +376,8 @@ void loop() {
     if (m_bme680_ready) {
       m_bme680_ready = false;
       Serial.println("bme680 rdy");
-      m_out = String( m_out + String::format(",\"bme680_temp\":%d,\"bme680_pres\":%d", bsec.temperature, bsec.pressure) );
-      m_out = String( m_out + String::format(",\"bme680_hum\":%d,\"bme680_iaq\":%d", bsec.humidity, bsec.iaqEstimate) );
+      m_out = String( m_out + String::format(",\"bme680_temp\":%.2f,\"bme680_pres\":%.2f", bsec.rawTemperature, bsec.pressure/100.0f) );
+      m_out = String( m_out + String::format(",\"bme680_hum\":%.2f,\"bme680_iaq\":%.2f", bsec.rawHumidity, bsec.iaqEstimate) );
     } else {
       Serial.println("bme680 err");
     }
