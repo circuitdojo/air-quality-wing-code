@@ -206,3 +206,32 @@ uint32_t CCS811::read(ccs811_data_t * p_data) {
   }
 
 }
+
+uint32_t CCS811::get_app_version(ccs811_app_ver_t * p_app_ver) {
+
+  uint32_t err_code;
+
+  Wire.beginTransmission(this->address);
+  Wire.write(CCS811_APP_VER_REG); // sends register address
+  err_code = Wire.endTransmission();  // stop transaction
+  if( err_code != 0) {
+    return CCS811_COMM_ERR;
+  }
+
+  uint8_t num_bytes = Wire.requestFrom(this->address, (uint8_t)2); // request the bytes
+
+  // If  not enough bytes were read, error!
+  if( num_bytes != 2) {
+    return CCS811_NO_DAT_AVAIL;
+  }
+
+  // Convert data to something useful
+  p_app_ver->majorminor = Wire.read();
+  p_app_ver->trivial = Wire.read();
+
+  // Serial.printf("%x %x",p_app_ver->majorminor,p_app_ver->trivial );
+
+  return CCS811_SUCCESS;
+
+
+}

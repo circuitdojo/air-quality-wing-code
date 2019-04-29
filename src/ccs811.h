@@ -20,6 +20,7 @@
 #define CCS811_BASELINE_REG   0x11
 
 #define CCS811_HW_ID_REG      0x20
+#define CCS811_APP_VER_REG    0x24
 #define CCS811_START_APP      0xF4
 
 #define CCS811_IDLE_MODE      0x00
@@ -37,7 +38,8 @@ enum {
   CCS811_SUCCESS,
   CCS811_NULL_ERROR,
   CCS811_NO_DAT_AVAIL,
-  CCS811_RUN_ERROR
+  CCS811_RUN_ERROR,
+  CCS811_COMM_ERR
 };
 
 typedef struct {
@@ -53,6 +55,17 @@ typedef struct {
   uint8_t wake_pin;
 } ccs811_init_t;
 
+typedef struct {
+  union {
+    struct {
+    uint8_t major: 4;
+    uint8_t minor: 4;
+    };
+    uint8_t majorminor;
+  };
+  uint8_t trivial;
+} ccs811_app_ver_t;
+
 class CCS811 {
   public:
     CCS811(void);
@@ -62,6 +75,7 @@ class CCS811 {
     uint32_t read(ccs811_data_t * p_data);
     uint32_t save_baseline();
     uint32_t restore_baseline();
+    uint32_t get_app_version(ccs811_app_ver_t * p_app_ver);
     void int_handler(void);
   protected:
     uint8_t address;

@@ -224,6 +224,12 @@ void setup() {
     System.reset();
   }
 
+  // Get the version and print it
+  ccs811_app_ver_t version;
+  ccs811.get_app_version(&version);
+
+  Serial.printf("CCS811 Ver %d.%d.%d", version.major, version.minor, version.trivial);
+
   // SPG30 setup
   #ifdef HAS_SPG30
   err_code = spg30.setup();
