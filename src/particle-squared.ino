@@ -263,15 +263,17 @@ void setup() {
   checkIaqSensorStatus();
 
   // Set up BME680 sensors
-  bsec_virtual_sensor_t sensorList[5] = {
+  bsec_virtual_sensor_t sensorList[7] = {
     BSEC_OUTPUT_RAW_TEMPERATURE,
     BSEC_OUTPUT_RAW_PRESSURE,
     BSEC_OUTPUT_RAW_HUMIDITY,
     BSEC_OUTPUT_RAW_GAS,
     BSEC_OUTPUT_IAQ,
+    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
+    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY
   };
 
-  bsec.updateSubscription(sensorList, 5, BSEC_SAMPLE_RATE_CONTINUOUS); //BSEC_SAMPLE_RATE_LP
+  bsec.updateSubscription(sensorList, 7, BSEC_SAMPLE_RATE_CONTINUOUS); //BSEC_SAMPLE_RATE_LP
   checkIaqSensorStatus();
   #endif
 
@@ -378,7 +380,7 @@ void loop() {
       Serial.println("bme680 rdy");
       m_out = String( m_out + String::format(",\"bme680_temp\":%.2f,\"bme680_pres\":%.2f", bsec.rawTemperature, bsec.pressure/100.0f) );
       m_out = String( m_out + String::format(",\"bme680_hum\":%.2f,\"bme680_iaq\":%.2f", bsec.rawHumidity, bsec.iaqEstimate) );
-      m_out = String( m_out + String::format(",\"bme680_temp_calc\":%.2f,\"bme680_hum_calc\":%.2f", bsec.humidity, bsec.temperature) );
+      m_out = String( m_out + String::format(",\"bme680_temp_calc\":%.2f,\"bme680_hum_calc\":%.2f", bsec.temperature, bsec.humidity) );
     } else {
       Serial.println("bme680 err");
     }
