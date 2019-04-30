@@ -22,6 +22,11 @@
 #define CCS811_HW_ID_REG      0x20
 #define CCS811_APP_VER_REG    0x24
 #define CCS811_START_APP      0xF4
+#define CCS811_ERASE_REG      0xF1
+#define CCS811_WRITE_APP_REG  0xF2
+#define CCS811_VERIFY_REG     0xF3
+
+#define CCS811_ERASE_CODE     { 0xE7, 0xA7, 0xE6, 0x09 }
 
 #define CCS811_IDLE_MODE      0x00
 #define CCS811_CONSTANT_MODE  0x20
@@ -39,7 +44,9 @@ enum {
   CCS811_NULL_ERROR,
   CCS811_NO_DAT_AVAIL,
   CCS811_RUN_ERROR,
-  CCS811_COMM_ERR
+  CCS811_COMM_ERR,
+  CCS811_NO_UPDATE_NEEDED,
+  CCS811_UPDATE_VERIFY_FAIL
 };
 
 typedef struct {
@@ -66,6 +73,12 @@ typedef struct {
   uint8_t trivial;
 } ccs811_app_ver_t;
 
+const ccs811_app_ver_t update_verion = {
+  .major = 2,
+  .minor = 0,
+  .trivial = 1
+};
+
 class CCS811 {
   public:
     CCS811(void);
@@ -76,6 +89,7 @@ class CCS811 {
     uint32_t save_baseline();
     uint32_t restore_baseline();
     uint32_t get_app_version(ccs811_app_ver_t * p_app_ver);
+    uint32_t update_app();
     void int_handler(void);
   protected:
     uint8_t address;

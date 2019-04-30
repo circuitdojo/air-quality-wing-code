@@ -7,6 +7,7 @@
  */
 
 #include "ccs811.h"
+#include "CCS811_FW_App_v2_0_1.h"
 
 CCS811::CCS811() {}
 
@@ -232,6 +233,137 @@ uint32_t CCS811::get_app_version(ccs811_app_ver_t * p_app_ver) {
   // Serial.printf("%x %x",p_app_ver->majorminor,p_app_ver->trivial );
 
   return CCS811_SUCCESS;
+
+
+}
+
+
+uint32_t CCS811::update_app(ccs811_app_ver_t * p_app_ver) {
+
+  ccs811_app_ver_t current_ver;
+
+  // Check the version
+  uint32_t err_code = this->get_app_version(&current_ver);
+
+  // Return if not success
+  if( err_code != 0 ) {
+    return err_code;
+  }
+
+  bool start_update = false;
+
+  if( update_verion.major > current_ver.major ||
+      update_verion.minor > current_ver.minor ) {
+    // start
+    start_update = true;
+  } else if( update_verion.major == current_ver.major &&
+             update_verion.minor == current_ver.minor &&
+             update_verion.trivial > current_ver.trivial ) {
+    // start
+    start_update = true;
+  }
+
+  // Return if there's no update
+  if( !start_update ) {
+    return CCS811_NO_DAT_AVAIL;
+  }
+
+  Serial.println("start update");
+
+  // Otherwise there is an update
+  // Toggle reset pin
+  pinMode(this->rst_pin, OUTPUT);
+  digitalWrite(this->rst_pin, LOW);
+  delay(1);
+  pinMode(this->rst_pin, INPUT);
+  delay(30);
+
+  // Erase codee
+  uint8_t cmd[] = CCS811_ERASE_CODE;
+
+  Serial.println("erase");
+
+  // Begin the process
+  Wire.beginTransmission(this->address);
+  Wire.write(CCS811_ERASE_REG); // sends register address
+  err_code = Wire.endTransmission();  // stop transaction
+  if( err_code != 0) {
+    return CCS811_COMM_ERR;
+  }
+
+  delay(500);
+
+  // Get the length of the binary
+  uint32_t length = sizeof(CCS811_FW_App_v2_0_1_bin);
+
+  // Data pointer
+  uint8_t *data = &CCS811_FW_App_v2_0_1_bin;
+
+  // Payload to be sent over I2C
+  uint8_t payload[9];
+
+  // Set first byte to the command
+  payload[0] = CCS811_WRITE_APP_REG;
+
+  // Calculate the iterations to run
+  uint32_t iterations = length/8;
+
+  Serial.printf("iterations %d", iterations);
+
+  for( int i = 0; i < iterations, i++ ) {
+
+    // Copy 8 bytes
+    memcpy(payload[1],data,8);
+
+    // Write said 8 bytes
+    Wire.beginTransmission(this->address);
+    Wire.write(payload); // sends register address
+    err_code = Wire.endTransmission();  // stop transaction
+    if( err_code != 0) {
+      return CCS811_COMM_ERR;
+    }
+
+    // Delay
+    delay(50);
+
+    // Increment the pointer
+    data+=8;
+
+  }
+
+  // Verify
+  Wire.beginTransmission(this->address);
+  Wire.write(CCS811_VERIFY_REG); // sends register address
+  err_code = Wire.endTransmission();  // stop transaction
+  if( err_code != 0) {
+    return CCS811_COMM_ERR;
+  }
+
+  delay(500);
+
+  // Check the status
+  Wire.beginTransmission(this->address);
+  Wire.write(CCS811_STATUS_REG);
+  err_code = Wire.endTransmission();  // stop transaction
+  if( err_code != 0) {
+    return CCS811_COMM_ERR;
+  }
+
+  Wire.requestFrom(this->address,(uint8_t)1);
+
+  uint8_t status = Wire.read();
+
+  if ((status & 0x30) == 0x30){
+    // program code valid
+    Serial.println("Code is valid!");
+    return CCS811_SUCCESS;
+  }
+  else{
+    // program code invalid
+    Serial.println("Code is valid!");
+    return CCS811_UPDATE_VERIFY_FAIL;
+  }
+
 
 
 }
