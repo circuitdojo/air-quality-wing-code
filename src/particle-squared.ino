@@ -13,6 +13,9 @@
 #include "board.h"
 #include "bsec.h"
 
+// Firmware update
+#include "CCS811_FW_App_v2_0_1.h"
+
 #if PLATFORM_ID != PLATFORM_XENON
 SYSTEM_MODE(SEMI_AUTOMATIC);
 #endif
@@ -212,6 +215,27 @@ void setup() {
     System.reset();
   }
 
+  // Update!
+  const ccs811_app_update_t update {
+    .ver = {
+      .major = 2,
+      .minor = 0,
+      .trivial = 1
+    },
+    .data = CCS811_FW_App_v2_0_1_bin,
+    .size = CCS811_FW_App_v2_0_1_bin_len
+  };
+
+  // Checkfor updates
+  err_code = ccs811.update_app(&update);
+  if( err_code == CCS811_NO_UPDATE_NEEDED ) {
+    Serial.printf("ccs811 no update needed\n");
+    Serial.flush();
+  } else if  ( err_code != 0 ) {
+    Serial.printf("ccs811 update err %d\n", err_code);
+    Serial.flush();
+  }
+
   // Restore the baseline
   ccs811.restore_baseline();
 
@@ -228,7 +252,7 @@ void setup() {
   ccs811_app_ver_t version;
   ccs811.get_app_version(&version);
 
-  Serial.printf("CCS811 Ver %d.%d.%d", version.major, version.minor, version.trivial);
+  Serial.printf("ccs811 ver %x.%d.%d", version.major, version.minor, version.trivial);
 
   // SPG30 setup
   #ifdef HAS_SPG30

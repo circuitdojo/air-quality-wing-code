@@ -7,7 +7,6 @@
  */
 
 #include "ccs811.h"
-#include "CCS811_FW_App_v2_0_1.h"
 
 CCS811::CCS811() {}
 
@@ -227,7 +226,11 @@ uint32_t CCS811::get_app_version(ccs811_app_ver_t * p_app_ver) {
   }
 
   // Convert data to something useful
-  p_app_ver->majorminor = Wire.read();
+  uint8_t majorminor = Wire.read();
+
+  // MSB is split into two. First nibble major, second is the  minor
+  p_app_ver->major = (majorminor >> 4) & 0x0f;
+  p_app_ver->minor = majorminor & 0x0f;
   p_app_ver->trivial = Wire.read();
 
   // Serial.printf("%x %x",p_app_ver->majorminor,p_app_ver->trivial );
@@ -238,7 +241,11 @@ uint32_t CCS811::get_app_version(ccs811_app_ver_t * p_app_ver) {
 }
 
 
-uint32_t CCS811::update_app(ccs811_app_ver_t * p_app_ver) {
+uint32_t CCS811::update_app(const ccs811_app_update_t * p_app_update) {
+
+  if( p_app_update == NULL ) {
+    return CCS811_NULL_ERROR;
+  }
 
   ccs811_app_ver_t current_ver;
 
@@ -252,20 +259,21 @@ uint32_t CCS811::update_app(ccs811_app_ver_t * p_app_ver) {
 
   bool start_update = false;
 
-  if( update_verion.major > current_ver.major ||
-      update_verion.minor > current_ver.minor ) {
+  if( p_app_update->ver.major > current_ver.major ||
+      p_app_update->ver.minor > current_ver.minor ) {
     // start
     start_update = true;
-  } else if( update_verion.major == current_ver.major &&
-             update_verion.minor == current_ver.minor &&
-             update_verion.trivial > current_ver.trivial ) {
+  } else if(
+      p_app_update->ver.major == current_ver.major &&
+      p_app_update->ver.minor == current_ver.minor &&
+      p_app_update->ver.trivial > current_ver.trivial ) {
     // start
     start_update = true;
   }
 
   // Return if there's no update
   if( !start_update ) {
-    return CCS811_NO_DAT_AVAIL;
+    return CCS811_NO_UPDATE_NEEDED;
   }
 
   Serial.println("start update");
@@ -286,6 +294,7 @@ uint32_t CCS811::update_app(ccs811_app_ver_t * p_app_ver) {
   // Begin the process
   Wire.beginTransmission(this->address);
   Wire.write(CCS811_ERASE_REG); // sends register address
+  Wire.write(cmd, sizeof(cmd));
   err_code = Wire.endTransmission();  // stop transaction
   if( err_code != 0) {
     return CCS811_COMM_ERR;
@@ -293,11 +302,9 @@ uint32_t CCS811::update_app(ccs811_app_ver_t * p_app_ver) {
 
   delay(500);
 
-  // Get the length of the binary
-  uint32_t length = sizeof(CCS811_FW_App_v2_0_1_bin);
-
-  // Data pointer
-  uint8_t *data = &CCS811_FW_App_v2_0_1_bin;
+  // Set up for ops
+  uint32_t length = p_app_update->size;
+  uint8_t *data = p_app_update->data;
 
   // Payload to be sent over I2C
   uint8_t payload[9];
@@ -310,14 +317,16 @@ uint32_t CCS811::update_app(ccs811_app_ver_t * p_app_ver) {
 
   Serial.printf("iterations %d", iterations);
 
-  for( int i = 0; i < iterations, i++ ) {
+  for( uint32_t i = 0; i < iterations; i++ ) {
+
+    Serial.printf("%d\n",i);
 
     // Copy 8 bytes
-    memcpy(payload[1],data,8);
+    memcpy(&payload[1],data,8);
 
     // Write said 8 bytes
     Wire.beginTransmission(this->address);
-    Wire.write(payload); // sends register address
+    Wire.write(payload, sizeof(payload)); // sends register address
     err_code = Wire.endTransmission();  // stop transaction
     if( err_code != 0) {
       return CCS811_COMM_ERR;

@@ -63,21 +63,16 @@ typedef struct {
 } ccs811_init_t;
 
 typedef struct {
-  union {
-    struct {
-    uint8_t major: 4;
-    uint8_t minor: 4;
-    };
-    uint8_t majorminor;
-  };
+  uint8_t major;
+  uint8_t minor;
   uint8_t trivial;
 } ccs811_app_ver_t;
 
-const ccs811_app_ver_t update_verion = {
-  .major = 2,
-  .minor = 0,
-  .trivial = 1
-};
+typedef struct {
+  ccs811_app_ver_t ver;
+  uint8_t * data;
+  size_t size;
+} ccs811_app_update_t;
 
 class CCS811 {
   public:
@@ -89,7 +84,7 @@ class CCS811 {
     uint32_t save_baseline();
     uint32_t restore_baseline();
     uint32_t get_app_version(ccs811_app_ver_t * p_app_ver);
-    uint32_t update_app();
+    uint32_t update_app(const ccs811_app_update_t * p_app_update);
     void int_handler(void);
   protected:
     uint8_t address;
