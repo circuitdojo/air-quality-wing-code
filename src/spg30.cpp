@@ -43,7 +43,7 @@ void SPG30::set_ready() {
 
 uint32_t SPG30::save_baseline() {
 
-  Serial.println("save baseline");
+  Serial.println("save spg30 baseline");
 
   Wire.beginTransmission(SPG30_ADDRESS);
   Wire.write((SPG30_GET_BASE >> 8) & 0xff); // sends register address
@@ -55,64 +55,57 @@ uint32_t SPG30::save_baseline() {
     return SPG30_COMM_ERR;
   }
 
-  Wire.requestFrom(SPG30_ADDRESS, 6); // request the bytes
+  size_t bytes_read = Wire.requestFrom(SPG30_ADDRESS, 6); // request the bytes
 
-  uint16_t c02_baseline, tvoc_baseline;
+  uint8_t baseline[6];
+  uint8_t index = 0;
 
-  // Get C02 data
-  uint32_t err_code = this->read_data_check_crc(&c02_baseline);
-  if( err_code != SPG30_SUCCESS ) {
-    return SPG30_DATA_ERR;
+  if ( bytes_read == 6 ) {
+
+    while( Wire.available() ) {
+      // Sock away the data
+      baseline[index++] = Wire.read();
+    }
+
   }
 
-  // Get the TVOC data
-  err_code = this->read_data_check_crc(&tvoc_baseline);
-  if( err_code != SPG30_SUCCESS ) {
-    return SPG30_DATA_ERR;
-  }
+  Serial.printf("baseline: %x%x%x%x%x%x\n",baseline[0],baseline[1],baseline[2],baseline[3],baseline[4],baseline[5]);
 
   // Write to the address
-  EEPROM.put(SPG30_C02_BASELINE_ADDR, c02_baseline);
-  EEPROM.put(SPG30_TVOC_BASELINE_ADDR, tvoc_baseline);
+  EEPROM.put(SPG30_BASELINE_ADDR, baseline);
 
   return NRF_SUCCESS;
 }
 
 uint32_t SPG30::restore_baseline() {
 
-  Serial.println("restore baseline");
+  Serial.println("restore spg30 baseline");
 
-  uint8_t c02_baseline[2],tvoc_baseline[2];
-
-  // Get the baseline to the address
-  EEPROM.get(SPG30_C02_BASELINE_ADDR, c02_baseline);
-
-  // If it's uninitialized, return invalid data
-  if ( c02_baseline[0] == 0xff && c02_baseline[1] == 0xff) {
-    Serial.println("restore error");
-    return NRF_ERROR_INVALID_DATA;
-  }
+  uint8_t baseline[6];
 
   // Get the baseline to the address
-  EEPROM.get(SPG30_C02_BASELINE_ADDR, tvoc_baseline);
+  EEPROM.get(SPG30_BASELINE_ADDR, baseline);
 
-    // If it's uninitialized, return invalid data
-  if ( tvoc_baseline[0] == 0xff && tvoc_baseline[1] == 0xff) {
-    Serial.println("restore error");
-    return NRF_ERROR_INVALID_DATA;
+  // Check to make sure there is valid data
+  if( (baseline[0] == 0xff) &&
+      (baseline[1] == 0xff) &&
+      (baseline[2] == 0xff) &&
+      (baseline[3] == 0xff) &&
+      (baseline[4] == 0xff) &&
+      (baseline[5] == 0xff) ) {
+      return SPG30_NO_BASELINE_AVAIL;
   }
 
-  // TODO: flush this out
+  // Write to the chip
+  Wire.beginTransmission(SPG30_ADDRESS);
+  Wire.write((SPG30_SET_BASE >> 8) & 0xff); // sends register address
+  Wire.write(SPG30_SET_BASE & 0xff); // sends register address
+  Wire.write(baseline,6);
 
-  // // Write to the chip
-  // Wire.beginTransmission(SPG30_ADDRESS);
-  // Wire.write(SPG30_BASELINE_REG); // sends register address
-  // Wire.write(baseline[0]);
-  // Wire.write(baseline[1]);
-  // err_code = Wire.endTransmission();           // stop transaction
-  // if( err_code != 0 ){
-  //   return err_code;
-  // }
+  uint32_t err_code = Wire.endTransmission();           // stop transaction
+  if( err_code != 0 ){
+    return err_code;
+  }
 
   return SPG30_SUCCESS;
 }

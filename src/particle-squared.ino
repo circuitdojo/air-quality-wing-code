@@ -263,6 +263,10 @@ void setup() {
     System.reset();
   }
 
+  // Restore the baseline
+  spg30.restore_baseline();
+
+  // Start the readings every 1 sec
   spg30_timer.start();
   #endif
 
@@ -434,6 +438,7 @@ void loop() {
     m_day_counter = days_calc;
 
     ccs811.save_baseline();
+    spg30.save_baseline();
   }
 
   #ifdef HAS_SPG30
