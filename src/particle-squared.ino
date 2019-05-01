@@ -252,7 +252,7 @@ void setup() {
   ccs811_app_ver_t version;
   ccs811.get_app_version(&version);
 
-  Serial.printf("ccs811 ver %x.%d.%d", version.major, version.minor, version.trivial);
+  Serial.printf("ccs811 ver %x.%d.%d\n", version.major, version.minor, version.trivial);
 
   // SPG30 setup
   #ifdef HAS_SPG30
@@ -361,6 +361,9 @@ void loop() {
     if( err_code == SI7021_SUCCESS ) {
       // Set env data in the CCS811
       ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
+
+      // Set the env data for the SPG30
+      spg30.set_env(si7021_data.temperature,si7021_data.humidity);
 
       // Concatinate temp and humidity data
       m_out = String( m_out + String::format("\"temperature\":%.2f,\"humidity\":%.2f",si7021_data.temperature, si7021_data.humidity) );

@@ -6,6 +6,7 @@
  * License: GNU GPLv3
  */
 
+#include <math.h>
 #include "SPG30.h"
 #include "crc8_dallas.h"
 
@@ -199,6 +200,56 @@ uint32_t SPG30::process() {
     this->data_available = true;
 
   }
+
+  return SPG30_SUCCESS;
+}
+
+uint32_t SPG30::set_env(float temp, float hum) {
+
+  const float a = 5.018;
+  const float b = .32321;
+  const float c = 0.0081847;
+  const float d = 0.00031243;
+
+  Serial.printf("temp %.2f%% %.2f°c\n", hum, temp);
+
+  // Calculate the saturation vapor desnity
+  // Based on the curves here: http://hyperphysics.phy-astr.gsu.edu/hbase/Kinetic/relhum.html#c3
+  // Value is in gm/m3
+  float sat_vapor_density = a + b * temp + c * pow(temp,2) + d * pow(temp,3);
+
+  Serial.printf("saturation vapor density %.4f\n", sat_vapor_density);
+
+  // Calculate the actual
+  // Value is in gm/m3
+  float actual_vapor_density = hum * sat_vapor_density / 100.0;
+
+  // Write the actual to the spg30
+  Serial.printf("actual vapor density %.4f\n", actual_vapor_density);
+
+  // Organize the bytes
+  uint8_t data[3];
+  data[0] = (uint8_t)actual_vapor_density;
+  data[1] = (uint8_t)((actual_vapor_density-data[0]) * 256);
+
+  Serial.printf("data to spg30: 0x%x%x\n",data[0],data[1]);
+
+  // Cacluate the crc for the last byte
+  data[2] = crc8_dallas_little(data,2);
+
+  // Write the humidity data
+  Wire.beginTransmission(SPG30_ADDRESS);
+  Wire.write((SPG30_SET_HUM >> 8) & 0xff); // sends register address
+  Wire.write(SPG30_SET_HUM & 0xff); // sends register address
+  Wire.write(data,3);
+  uint8_t ret = Wire.endTransmission();  // stop transaction
+
+  // // Return on error
+  // if( ret != 0 ) {
+  //   Serial.printf("set env err %d\n",ret);
+  //   return SPG30_COMM_ERR;
+  // }
+
 
   return SPG30_SUCCESS;
 }
