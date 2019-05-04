@@ -63,7 +63,7 @@ static bool m_data_ready = false;
 static bool m_bme680_ready = false;
 
 // State of baseline
-static uint32_t m_day_counter = 0;
+static uint32_t m_period_counter = 0;
 
 static String m_out;
 
@@ -430,12 +430,12 @@ void loop() {
 
   }
 
-  // Save the baseline if we're > 24hr
-  uint32_t days_calc = System.uptime()/60/60/24;
-  if( days_calc > m_day_counter) {
+  // Save the baseline if we're > 4hr
+  uint32_t periods = System.uptime()/60/60/4;
+  if( periods > m_period_counter) {
 
     //Update the counter
-    m_day_counter = days_calc;
+    m_period_counter = periods;
 
     ccs811.save_baseline();
     spg30.save_baseline();
