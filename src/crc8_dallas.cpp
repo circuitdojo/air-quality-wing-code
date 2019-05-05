@@ -12,7 +12,7 @@
 #define CRC8_DALLAS_INIT 0xff
 #define CRC8_DALLAS_POLY 0x31
 
-// Little Endian CRC8 Calculation For The SPG30
+// Little Endian CRC8 Calculation For The SGP30
 uint8_t crc8_dallas_little(uint8_t *data, uint16_t size)
 {
     // Initializing (Typical start values 0x00 and 0xff)

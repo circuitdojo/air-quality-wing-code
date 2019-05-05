@@ -9,7 +9,7 @@
 #include "si7021.h"
 #include "ccs811.h"
 #include "hpma115.h"
-#include "spg30.h"
+#include "sgp30.h"
 #include "board.h"
 #include "bsec.h"
 
@@ -38,13 +38,13 @@ static uint32_t m_reading_period = MEASUREMENT_DELAY_MS;
 static Si7021  si7021 = Si7021();
 static CCS811  ccs811 = CCS811();
 static HPMA115 hpma115 = HPMA115();
-static SPG30   spg30 = SPG30();
+static SGP30   sgp30 = SGP30();
 static Bsec    bsec = Bsec();
 
 // Set up timer
 Timer timer(m_reading_period, timer_handler);
 Timer hpma_timer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
-Timer spg30_timer(SPG30_READ_INTERVAL, spg30_timer_handler);
+Timer sgp30_timer(SGP30_READ_INTERVAL, sgp30_timer_handler);
 
 // Watchdog
 ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
@@ -53,7 +53,7 @@ ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
 static si7021_data_t si7021_data, si7021_data_last;
 static ccs811_data_t ccs811_data;
 static hpma115_data_t hpma115_data;
-static spg30_data_t spg30_data;
+static sgp30_data_t sgp30_data;
 
 // Data check bool
 static bool data_check = false;
@@ -68,8 +68,8 @@ static uint32_t m_period_counter = 0;
 static String m_out;
 
 // Definition of timer handler
-void spg30_timer_handler() {
-  spg30.set_ready();
+void sgp30_timer_handler() {
+  sgp30.set_ready();
 }
 
 // Definition of timer handler
@@ -254,20 +254,20 @@ void setup() {
 
   Serial.printf("ccs811 ver %x.%d.%d\n", version.major, version.minor, version.trivial);
 
-  // SPG30 setup
-  #ifdef HAS_SPG30
-  err_code = spg30.setup();
-  if( err_code != SPG30_SUCCESS ) {
-    Serial.printf("spg30 setup err %d\n", err_code);
+  // SGP30 setup
+  #ifdef HAS_SGP30
+  err_code = sgp30.setup();
+  if( err_code != SGP30_SUCCESS ) {
+    Serial.printf("sgp30 setup err %d\n", err_code);
     Serial.flush();
     System.reset();
   }
 
   // Restore the baseline
-  spg30.restore_baseline();
+  sgp30.restore_baseline();
 
   // Start the readings every 1 sec
-  spg30_timer.start();
+  sgp30_timer.start();
   #endif
 
   #ifdef HAS_HPMA
@@ -366,8 +366,8 @@ void loop() {
       // Set env data in the CCS811
       ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
 
-      // Set the env data for the SPG30
-      spg30.set_env(si7021_data.temperature,si7021_data.humidity);
+      // Set the env data for the SGP30
+      sgp30.set_env(si7021_data.temperature,si7021_data.humidity);
 
       // Concatinate temp and humidity data
       m_out = String( m_out + String::format("\"temperature\":%.2f,\"humidity\":%.2f",si7021_data.temperature, si7021_data.humidity) );
@@ -390,17 +390,17 @@ void loop() {
       Serial.println("tvoc err");
     }
 
-    #ifdef HAS_SPG30
-    err_code = spg30.read(&spg30_data);
+    #ifdef HAS_SGP30
+    err_code = sgp30.read(&sgp30_data);
 
-    if ( err_code == SPG30_SUCCESS ) {
+    if ( err_code == SGP30_SUCCESS ) {
 
-      // concatinate spg30 data
-      m_out = String( m_out + String::format(",\"spg30_tvoc\":%d,\"spg30_c02\":%d", spg30_data.tvoc, spg30_data.c02) );
-      Serial.println("spg30 rdy");
+      // concatinate sgp30 data
+      m_out = String( m_out + String::format(",\"sgp30_tvoc\":%d,\"sgp30_c02\":%d", sgp30_data.tvoc, sgp30_data.c02) );
+      Serial.println("sgp30 rdy");
     } else {
-      Particle.publish("err", "spg30" , PRIVATE, NO_ACK);
-      Serial.println("spg30 err");
+      Particle.publish("err", "sgp30" , PRIVATE, NO_ACK);
+      Serial.println("sgp30 err");
     }
     #endif
 
@@ -438,14 +438,14 @@ void loop() {
     m_period_counter = periods;
 
     ccs811.save_baseline();
-    spg30.save_baseline();
+    sgp30.save_baseline();
   }
 
-  #ifdef HAS_SPG30
+  #ifdef HAS_SGP30
   // Processes any avilable serial data
-  err_code = spg30.process();
+  err_code = sgp30.process();
 
-  if( err_code != SPG30_SUCCESS ) {
+  if( err_code != SGP30_SUCCESS ) {
     Serial.println("sp30 process error");
   }
   #endif

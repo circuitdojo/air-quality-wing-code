@@ -2,7 +2,7 @@
 #define BOARD_H
 
 #define HAS_HPMA
-// #define HAS_SPG30
+//#define HAS_SGP30
 // #define HAS_BME680
 
 #define I2C_SDA_PIN     D0

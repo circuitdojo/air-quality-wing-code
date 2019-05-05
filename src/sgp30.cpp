@@ -7,55 +7,55 @@
  */
 
 #include <math.h>
-#include "SPG30.h"
+#include "SGP30.h"
 #include "crc8_dallas.h"
 
-SPG30::SPG30() {}
+SGP30::SGP30() {}
 
-uint32_t SPG30::setup() {
+uint32_t SGP30::setup() {
 
   // Init variables
   this->ready = false;
   this->data_available = false;
 
   // Run the app
-  Wire.beginTransmission(SPG30_ADDRESS);
-  Wire.write((SPG30_INIT_CMD >> 8) & 0xff); // sends register address
-  Wire.write(SPG30_INIT_CMD & 0xff); // sends register address
+  Wire.beginTransmission(SGP30_ADDRESS);
+  Wire.write((SGP30_INIT_CMD >> 8) & 0xff); // sends register address
+  Wire.write(SGP30_INIT_CMD & 0xff); // sends register address
   uint8_t ret = Wire.endTransmission();  // stop transaction
 
   // Return an error if we have an error
   if (ret != 0) {
-    Serial.printf("spg30 err: %d\n", ret);
-    return SPG30_COMM_ERR;
+    Serial.printf("sgp30 err: %d\n", ret);
+    return SGP30_COMM_ERR;
   }
 
   // Startup delay
   delay(30);
 
-  return SPG30_SUCCESS;
+  return SGP30_SUCCESS;
 
 }
 
-void SPG30::set_ready() {
+void SGP30::set_ready() {
   this->ready = true;
 }
 
-uint32_t SPG30::save_baseline() {
+uint32_t SGP30::save_baseline() {
 
-  Serial.println("save spg30 baseline");
+  Serial.println("save sgp30 baseline");
 
-  Wire.beginTransmission(SPG30_ADDRESS);
-  Wire.write((SPG30_GET_BASE >> 8) & 0xff); // sends register address
-  Wire.write(SPG30_GET_BASE & 0xff); // sends register address
+  Wire.beginTransmission(SGP30_ADDRESS);
+  Wire.write((SGP30_GET_BASE >> 8) & 0xff); // sends register address
+  Wire.write(SGP30_GET_BASE & 0xff); // sends register address
   uint8_t ret = Wire.endTransmission();  // stop transaction
 
   // Return on error
   if( ret != 0 ) {
-    return SPG30_COMM_ERR;
+    return SGP30_COMM_ERR;
   }
 
-  size_t bytes_read = Wire.requestFrom(SPG30_ADDRESS, 6); // request the bytes
+  size_t bytes_read = Wire.requestFrom(SGP30_ADDRESS, 6); // request the bytes
 
   uint8_t baseline[6];
   uint8_t index = 0;
@@ -72,19 +72,19 @@ uint32_t SPG30::save_baseline() {
   Serial.printf("baseline: %x%x%x%x%x%x\n",baseline[0],baseline[1],baseline[2],baseline[3],baseline[4],baseline[5]);
 
   // Write to the address
-  EEPROM.put(SPG30_BASELINE_ADDR, baseline);
+  EEPROM.put(SGP30_BASELINE_ADDR, baseline);
 
   return NRF_SUCCESS;
 }
 
-uint32_t SPG30::restore_baseline() {
+uint32_t SGP30::restore_baseline() {
 
-  Serial.println("restore spg30 baseline");
+  Serial.println("restore sgp30 baseline");
 
   uint8_t baseline[6];
 
   // Get the baseline to the address
-  EEPROM.get(SPG30_BASELINE_ADDR, baseline);
+  EEPROM.get(SGP30_BASELINE_ADDR, baseline);
 
   // Check to make sure there is valid data
   if( (baseline[0] == 0xff) &&
@@ -93,13 +93,14 @@ uint32_t SPG30::restore_baseline() {
       (baseline[3] == 0xff) &&
       (baseline[4] == 0xff) &&
       (baseline[5] == 0xff) ) {
-      return SPG30_NO_BASELINE_AVAIL;
+      Serial.println("no sgp30 baseline available");
+      return SGP30_NO_BASELINE_AVAIL;
   }
 
   // Write to the chip
-  Wire.beginTransmission(SPG30_ADDRESS);
-  Wire.write((SPG30_SET_BASE >> 8) & 0xff); // sends register address
-  Wire.write(SPG30_SET_BASE & 0xff); // sends register address
+  Wire.beginTransmission(SGP30_ADDRESS);
+  Wire.write((SGP30_SET_BASE >> 8) & 0xff); // sends register address
+  Wire.write(SGP30_SET_BASE & 0xff); // sends register address
   Wire.write(baseline,6);
 
   uint32_t err_code = Wire.endTransmission();           // stop transaction
@@ -107,23 +108,23 @@ uint32_t SPG30::restore_baseline() {
     return err_code;
   }
 
-  return SPG30_SUCCESS;
+  return SGP30_SUCCESS;
 }
 
-uint32_t SPG30::read(spg30_data_t * p_data) {
+uint32_t SGP30::read(sgp30_data_t * p_data) {
 
   if( this->data_available ) {
     //Copy the data
     *p_data = this->data;
 
-    return SPG30_SUCCESS;
+    return SGP30_SUCCESS;
   } else {
-    return SPG30_NO_DAT_AVAIL;
+    return SGP30_NO_DAT_AVAIL;
   }
 
 }
 
-uint32_t SPG30::read_data_check_crc( uint16_t * data ){
+uint32_t SGP30::read_data_check_crc( uint16_t * data ){
 
     // Read temp c02 data and get CRC
     uint16_t temp = (Wire.read()<<8) + Wire.read();
@@ -133,18 +134,18 @@ uint32_t SPG30::read_data_check_crc( uint16_t * data ){
     // Return if CRC is incorrect
     if( crc != crc_calc ) {
       Serial.printf("crc fail %x %x\n", crc, crc_calc);
-      return SPG30_DATA_ERR;
+      return SGP30_DATA_ERR;
     }
 
     // Copy data over
     *data = temp;
 
     // Return on success!
-    return SPG30_SUCCESS;
+    return SGP30_SUCCESS;
 
 }
 
-uint32_t SPG30::process() {
+uint32_t SGP30::process() {
 
   uint32_t err_code;
 
@@ -153,51 +154,51 @@ uint32_t SPG30::process() {
     // Reset this var
     this->ready = false;
 
-    Wire.beginTransmission(SPG30_ADDRESS);
-    Wire.write((SPG30_MEAS_AIR >> 8) & 0xff); // sends register address
-    Wire.write(SPG30_MEAS_AIR & 0xff); // sends register address
+    Wire.beginTransmission(SGP30_ADDRESS);
+    Wire.write((SGP30_MEAS_AIR >> 8) & 0xff); // sends register address
+    Wire.write(SGP30_MEAS_AIR & 0xff); // sends register address
     uint8_t ret = Wire.endTransmission();  // stop transaction
 
     // Return on error
     if( ret != 0 ) {
-      return SPG30_COMM_ERR;
+      return SGP30_COMM_ERR;
     }
 
     // Set up measurement delay
     delay(13);
 
     // Start Rx 2 tvoc, 2 c02, 2 CRC
-    uint8_t bytes_recieved = Wire.requestFrom(SPG30_ADDRESS, 6); // request the bytes
+    uint8_t bytes_recieved = Wire.requestFrom(SGP30_ADDRESS, 6); // request the bytes
 
     // If no bytes recieved return
     if ( bytes_recieved == 0 || bytes_recieved != 6 ) {
-      return SPG30_COMM_ERR;
+      return SGP30_COMM_ERR;
     }
 
     // Get C02 data
     err_code = this->read_data_check_crc(&this->data.c02);
-    if( err_code != SPG30_SUCCESS ) {
-      return SPG30_DATA_ERR;
+    if( err_code != SGP30_SUCCESS ) {
+      return SGP30_DATA_ERR;
     }
 
     // Get the TVOC data
     err_code = this->read_data_check_crc(&this->data.tvoc);
-    if( err_code != SPG30_SUCCESS ) {
-      return SPG30_DATA_ERR;
+    if( err_code != SGP30_SUCCESS ) {
+      return SGP30_DATA_ERR;
     }
 
     // Print results
-    // Serial.printf("spg30 c02: %dppm tvoc: %dppb\n",this->data.c02,this->data.tvoc);
+    // Serial.printf("sgp30 c02: %dppm tvoc: %dppb\n",this->data.c02,this->data.tvoc);
 
     // data is ready!
     this->data_available = true;
 
   }
 
-  return SPG30_SUCCESS;
+  return SGP30_SUCCESS;
 }
 
-uint32_t SPG30::set_env(float temp, float hum) {
+uint32_t SGP30::set_env(float temp, float hum) {
 
   const float a = 5.018;
   const float b = .32321;
@@ -217,7 +218,7 @@ uint32_t SPG30::set_env(float temp, float hum) {
   // Value is in gm/m3
   float actual_vapor_density = hum * sat_vapor_density / 100.0;
 
-  // Write the actual to the spg30
+  // Write the actual to the sgp30
   Serial.printf("actual vapor density %.4f\n", actual_vapor_density);
 
   // Organize the bytes
@@ -225,24 +226,24 @@ uint32_t SPG30::set_env(float temp, float hum) {
   data[0] = (uint8_t)actual_vapor_density;
   data[1] = (uint8_t)((actual_vapor_density-data[0]) * 256);
 
-  Serial.printf("data to spg30: 0x%x%x\n",data[0],data[1]);
+  Serial.printf("data to sgp30: 0x%x%x\n",data[0],data[1]);
 
   // Cacluate the crc for the last byte
   data[2] = crc8_dallas_little(data,2);
 
   // Write the humidity data
-  Wire.beginTransmission(SPG30_ADDRESS);
-  Wire.write((SPG30_SET_HUM >> 8) & 0xff); // sends register address
-  Wire.write(SPG30_SET_HUM & 0xff); // sends register address
+  Wire.beginTransmission(SGP30_ADDRESS);
+  Wire.write((SGP30_SET_HUM >> 8) & 0xff); // sends register address
+  Wire.write(SGP30_SET_HUM & 0xff); // sends register address
   Wire.write(data,3);
   uint8_t ret = Wire.endTransmission();  // stop transaction
 
   // // Return on error
   // if( ret != 0 ) {
   //   Serial.printf("set env err %d\n",ret);
-  //   return SPG30_COMM_ERR;
+  //   return SGP30_COMM_ERR;
   // }
 
 
-  return SPG30_SUCCESS;
+  return SGP30_SUCCESS;
 }
