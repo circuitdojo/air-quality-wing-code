@@ -236,7 +236,7 @@ uint32_t SGP30::set_env(float temp, float hum) {
   Wire.write((SGP30_SET_HUM >> 8) & 0xff); // sends register address
   Wire.write(SGP30_SET_HUM & 0xff); // sends register address
   Wire.write(data,3);
-  uint8_t ret = Wire.endTransmission();  // stop transaction
+  Wire.endTransmission();  // stop transaction
 
   // // Return on error
   // if( ret != 0 ) {
