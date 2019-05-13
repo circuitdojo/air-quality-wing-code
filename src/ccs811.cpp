@@ -197,7 +197,7 @@ uint32_t CCS811::read(ccs811_data_t * p_data) {
 
       // If this value is < 400 not ready yet
       if ( p_data->c02 < CCS811_MIN_C02_LEVEL ) {
-        return CCS811_NO_DAT_AVAIL;
+        return CCS811_DAT_INVALID;
       }
 
       return CCS811_SUCCESS;
@@ -233,7 +233,7 @@ uint32_t CCS811::get_app_version(ccs811_app_ver_t * p_app_ver) {
   p_app_ver->minor = majorminor & 0x0f;
   p_app_ver->trivial = Wire.read();
 
-  // Serial.printf("%x %x",p_app_ver->majorminor,p_app_ver->trivial );
+  // Serial.printf("%x %x",majorminor,p_app_ver->trivial );
 
   return CCS811_SUCCESS;
 
