@@ -396,6 +396,8 @@ void loop() {
     } else {
       Particle.publish("err", "tvoc" , PRIVATE, NO_ACK);
       Serial.println("tvoc err");
+
+      //TODO: for some reason the CCS811 stops outputting values. Need to check for error condition here..
     }
     #endif
 
