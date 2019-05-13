@@ -200,6 +200,7 @@ void setup() {
   }
 
   // Setup CC8012
+  #ifdef HAS_CCS811
   ccs811_init_t ccs811_init;
   ccs811_init.int_pin = CCS811_INT_PIN;
   ccs811_init.address = CCS811_ADDRESS;
@@ -226,6 +227,12 @@ void setup() {
     .size = CCS811_FW_App_v2_0_1_bin_len
   };
 
+    // Get the version and print it
+  ccs811_app_ver_t version;
+  ccs811.get_app_version(&version);
+
+  Serial.printf("ccs811 ver %x.%d.%d\n", version.major, version.minor, version.trivial);
+
   // Checkfor updates
   err_code = ccs811.update_app(&update);
   if( err_code == CCS811_NO_UPDATE_NEEDED ) {
@@ -248,11 +255,7 @@ void setup() {
     System.reset();
   }
 
-  // Get the version and print it
-  ccs811_app_ver_t version;
-  ccs811.get_app_version(&version);
-
-  Serial.printf("ccs811 ver %x.%d.%d\n", version.major, version.minor, version.trivial);
+  #endif
 
   // SGP30 setup
   #ifdef HAS_SGP30
@@ -301,7 +304,7 @@ void setup() {
     BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY
   };
 
-  bsec.updateSubscription(sensorList, 7, BSEC_SAMPLE_RATE_CONTINUOUS); //BSEC_SAMPLE_RATE_LP
+  bsec.updateSubscription(sensorList, 7, BSEC_SAMPLE_RATE_LP); //BSEC_SAMPLE_RATE_LP
   checkIaqSensorStatus();
   #endif
 
@@ -364,10 +367,14 @@ void loop() {
 
     if( err_code == SI7021_SUCCESS ) {
       // Set env data in the CCS811
+      #ifdef HAS_CCS811
       ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
+      #endif
 
       // Set the env data for the SGP30
+      #ifdef HAS_SGP30
       sgp30.set_env(si7021_data.temperature,si7021_data.humidity);
+      #endif
 
       // Concatinate temp and humidity data
       m_out = String( m_out + String::format("\"temperature\":%.2f,\"humidity\":%.2f",si7021_data.temperature, si7021_data.humidity) );
@@ -378,6 +385,7 @@ void loop() {
     }
 
     // Process CCS811
+    #ifdef HAS_CCS811
     err_code = ccs811.read(&ccs811_data);
 
     if ( err_code == CCS811_SUCCESS ) {
@@ -389,6 +397,7 @@ void loop() {
       Particle.publish("err", "tvoc" , PRIVATE, NO_ACK);
       Serial.println("tvoc err");
     }
+    #endif
 
     #ifdef HAS_SGP30
     err_code = sgp30.read(&sgp30_data);
@@ -437,8 +446,13 @@ void loop() {
     //Update the counter
     m_period_counter = periods;
 
+    #ifdef HAS_CCS811
     ccs811.save_baseline();
+    #endif
+
+    #ifdef HAS_SGP30
     sgp30.save_baseline();
+    #endif
   }
 
   #ifdef HAS_SGP30

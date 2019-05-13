@@ -260,9 +260,8 @@ uint32_t CCS811::update_app(const ccs811_app_update_t * p_app_update) {
   bool start_update = false;
 
   // If any of the version information is not equal, update
-  if( p_app_update->ver.major != current_ver.major ||
-      p_app_update->ver.minor != current_ver.minor ||
-      p_app_update->ver.trivial != current_ver.trivial ) {
+  if( p_app_update->ver.major > current_ver.major ||
+      p_app_update->ver.minor > current_ver.minor ) {
     // start
     start_update = true;
   }
