@@ -314,6 +314,9 @@ void setup() {
   // Set up cloud variable
   Particle.function("set_period", set_reading_period);
 
+  // Set up keep alive
+  Particle.keepAlive(60);
+
 }
 
 // loop() runs over and over again, as quickly as it can execute.
@@ -393,11 +396,13 @@ void loop() {
       // Concatinate ccs811 tvoc
       m_out = String( m_out + String::format(",\"tvoc\":%d,\"c02\":%d", ccs811_data.tvoc, ccs811_data.c02) );
       Serial.println("tvoc rdy");
+    } else if( err_code == CCS811_NO_DAT_AVAIL ) {
+      Serial.println("fatal tvoc error");
+      Serial.flush();
+      System.reset();
     } else {
       Particle.publish("err", "tvoc" , PRIVATE, NO_ACK);
       Serial.println("tvoc err");
-
-      //TODO: for some reason the CCS811 stops outputting values. Need to check for error condition here..
     }
     #endif
 
