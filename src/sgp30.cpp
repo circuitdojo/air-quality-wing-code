@@ -7,7 +7,7 @@
  */
 
 #include <math.h>
-#include "SGP30.h"
+#include "sgp30.h"
 #include "crc8_dallas.h"
 
 SGP30::SGP30() {}
