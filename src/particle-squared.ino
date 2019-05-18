@@ -9,9 +9,15 @@
 #include "si7021.h"
 #include "ccs811.h"
 #include "hpma115.h"
-#include "sgp30.h"
 #include "board.h"
+
+#ifdef HAS_SGP30
+#include "sgp30.h"
+#endif
+
+#ifdef HAS_BME680
 #include "bsec.h"
+#endif
 
 // Firmware update
 #include "CCS811_FW_App_v2_0_1.h"
@@ -38,29 +44,46 @@ static uint32_t m_reading_period = MEASUREMENT_DELAY_MS;
 static Si7021  si7021 = Si7021();
 static CCS811  ccs811 = CCS811();
 static HPMA115 hpma115 = HPMA115();
+
+#ifdef HAS_SGP30
 static SGP30   sgp30 = SGP30();
+#endif
+
+#ifdef HAS_BME680
 static Bsec    bsec = Bsec();
+#endif
 
 // Set up timer
 Timer timer(m_reading_period, timer_handler);
 Timer hpma_timer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
+
+#ifdef HAS_SGP30
 Timer sgp30_timer(SGP30_READ_INTERVAL, sgp30_timer_handler);
+#endif
 
 // Watchdog
 ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
 
 // Data
 static si7021_data_t si7021_data, si7021_data_last;
-static ccs811_data_t ccs811_data;
 static hpma115_data_t hpma115_data;
+
+#ifdef HAS_CCS811
+static ccs811_data_t ccs811_data;
+#endif
+
+#ifdef HAS_SGP30
 static sgp30_data_t sgp30_data;
+#endif
 
 // Data check bool
 static bool data_check = false;
 
 // Data state ready
 static bool m_data_ready = false;
+#ifdef HAS_BME680
 static bool m_bme680_ready = false;
+#endif
 
 // State of baseline
 static uint32_t m_period_counter = 0;
@@ -68,9 +91,11 @@ static uint32_t m_period_counter = 0;
 static String m_out;
 
 // Definition of timer handler
+#ifdef HAS_SGP30
 void sgp30_timer_handler() {
   sgp30.set_ready();
 }
+#endif
 
 // Definition of timer handler
 void timer_handler() {
@@ -141,6 +166,7 @@ int set_reading_period( String period ) {
 }
 
 // Helper function definitions
+#ifdef HAS_BME680
 void checkIaqSensorStatus(void)
 {
 
@@ -172,6 +198,7 @@ void checkIaqSensorStatus(void)
     }
   }
 }
+#endif
 
 // setup() runs once, when the device is first turned on.
 void setup() {
