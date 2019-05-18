@@ -79,6 +79,9 @@ static sgp30_data_t sgp30_data;
 // Data check bool
 static bool data_check = false;
 
+// Error reset flag
+static bool m_error_flag = false;
+
 // Data state ready
 static bool m_data_ready = false;
 #ifdef HAS_BME680
@@ -177,7 +180,6 @@ void checkIaqSensorStatus(void)
       output = "BSEC error code :" + String(bsec.status);
       Serial.println(output);
       Serial.flush();
-      System.reset();
     } else {
       output = "BSEC warning code : " + String(bsec.status);
       Serial.println(output);
@@ -190,7 +192,7 @@ void checkIaqSensorStatus(void)
       output = "BME680 error code : " + String(bsec.bme680Status);
       Serial.println(output);
       Serial.flush();
-      System.reset();
+      m_error_flag = true;
     } else {
       output = "BME680 warning code : " + String(bsec.bme680Status);
       Serial.println(output);
@@ -223,7 +225,7 @@ void setup() {
   if( err_code != 0 ) {
     Serial.printf("si7021 setup err %d\n", err_code);
     Serial.flush();
-    System.reset();
+    m_error_flag = true;
   }
 
   // Setup CC8012
@@ -240,7 +242,7 @@ void setup() {
   if( err_code != 0 ) {
     Serial.printf("ccs811 setup err %d\n", err_code);
     Serial.flush();
-    System.reset();
+    m_error_flag = true;
   }
 
   // Update!
@@ -279,7 +281,7 @@ void setup() {
   if( err_code != 0 ) {
     Serial.printf("ccs811 enable err %d\n", err_code);
     Serial.flush();
-    System.reset();
+    m_error_flag = true;
   }
 
   #endif
@@ -290,7 +292,7 @@ void setup() {
   if( err_code != SGP30_SUCCESS ) {
     Serial.printf("sgp30 setup err %d\n", err_code);
     Serial.flush();
-    System.reset();
+    m_error_flag = true;
   }
 
   // Restore the baseline
@@ -311,7 +313,7 @@ void setup() {
   if (err_code != HPMA115_SUCCESS) {
     Serial.printf("hpma115 enable err %d\n", err_code);
     Serial.flush();
-    System.reset();
+    m_error_flag = true;
   }
   #endif
 
@@ -426,7 +428,7 @@ void loop() {
     } else if( err_code == CCS811_NO_DAT_AVAIL ) {
       Serial.println("fatal tvoc error");
       Serial.flush();
-      System.reset();
+      m_error_flag = true;
     } else {
       Particle.publish("err", "tvoc" , PRIVATE, NO_ACK);
       Serial.println("tvoc err");
@@ -514,7 +516,9 @@ void loop() {
     Particle.process();
   }
 
-  // Checking with WD
-  wd.checkin();
+  // Checking with WD -- if there's an error flag, no check in. That allows for a sufficent update window.
+  if( !m_error_flag ) {
+    wd.checkin();
+  }
 
 }
