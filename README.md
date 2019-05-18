@@ -6,9 +6,17 @@ Particle^2 (pronounced Particle Squared) is a circuit board that helps you monit
 
 [To get yours go here.](https://www.jaredwolff.com/store/particle-squared/)
 
-## Welcome to your project!
+## Quick Start:
 
-Every new Particle project is composed of 3 important elements that you'll see have been created in your project directory for particle-squared.
+1. Clone this repo onto a place on your machine: `git clone git@bitbucket.org:circuitdojo/particle-squared-code.git`
+2. Open the repo with Visual Code: (`code .` using the command line, or `file`->`open`)
+3. Open `/src/particle-squared.ino`
+4. Select your target device in the lower bar (Options are `xenon`, `argon`, `boron`)
+5. Hit `cmd` + `shift` + `p` to get the command menu
+6. Select `Compile application (local)`. You can also choose `Cloud flash` as long as `board.h` has not been modified.
+7. Enjoy playing around with your Particle Squared!
+
+## Particle Basics
 
 #### ```/src``` folder:
 This is the source folder that contains the firmware files for your project. It should *not* be renamed.
