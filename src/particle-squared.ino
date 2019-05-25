@@ -11,14 +11,6 @@
 #include "hpma115.h"
 #include "board.h"
 
-#ifdef HAS_SGP30
-#include "sgp30.h"
-#endif
-
-#ifdef HAS_BME680
-#include "bsec.h"
-#endif
-
 // Firmware update
 #include "CCS811_FW_App_v2_0_1.h"
 
@@ -45,21 +37,9 @@ static Si7021  si7021 = Si7021();
 static CCS811  ccs811 = CCS811();
 static HPMA115 hpma115 = HPMA115();
 
-#ifdef HAS_SGP30
-static SGP30   sgp30 = SGP30();
-#endif
-
-#ifdef HAS_BME680
-static Bsec    bsec = Bsec();
-#endif
-
 // Set up timer
 Timer timer(m_reading_period, timer_handler);
 Timer hpma_timer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
-
-#ifdef HAS_SGP30
-Timer sgp30_timer(SGP30_READ_INTERVAL, sgp30_timer_handler);
-#endif
 
 // Watchdog
 ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
@@ -72,10 +52,6 @@ static hpma115_data_t hpma115_data;
 static ccs811_data_t ccs811_data;
 #endif
 
-#ifdef HAS_SGP30
-static sgp30_data_t sgp30_data;
-#endif
-
 // Data check bool
 static bool data_check = false;
 
@@ -84,21 +60,11 @@ static bool m_error_flag = false;
 
 // Data state ready
 static bool m_data_ready = false;
-#ifdef HAS_BME680
-static bool m_bme680_ready = false;
-#endif
 
 // State of baseline
 static uint32_t m_period_counter = 0;
 
 static String m_out;
-
-// Definition of timer handler
-#ifdef HAS_SGP30
-void sgp30_timer_handler() {
-  sgp30.set_ready();
-}
-#endif
 
 // Definition of timer handler
 void timer_handler() {
@@ -168,39 +134,6 @@ int set_reading_period( String period ) {
 
 }
 
-// Helper function definitions
-#ifdef HAS_BME680
-void checkIaqSensorStatus(void)
-{
-
-  String output;
-
-  if (bsec.status != BSEC_OK) {
-    if (bsec.status < BSEC_OK) {
-      output = "BSEC error code :" + String(bsec.status);
-      Serial.println(output);
-      Serial.flush();
-    } else {
-      output = "BSEC warning code : " + String(bsec.status);
-      Serial.println(output);
-      Serial.flush();
-    }
-  }
-
-  if (bsec.bme680Status != BME680_OK) {
-    if (bsec.bme680Status < BME680_OK) {
-      output = "BME680 error code : " + String(bsec.bme680Status);
-      Serial.println(output);
-      Serial.flush();
-      m_error_flag = true;
-    } else {
-      output = "BME680 warning code : " + String(bsec.bme680Status);
-      Serial.println(output);
-      Serial.flush();
-    }
-  }
-}
-#endif
 
 // setup() runs once, when the device is first turned on.
 void setup() {
@@ -286,22 +219,6 @@ void setup() {
 
   #endif
 
-  // SGP30 setup
-  #ifdef HAS_SGP30
-  err_code = sgp30.setup();
-  if( err_code != SGP30_SUCCESS ) {
-    Serial.printf("sgp30 setup err %d\n", err_code);
-    Serial.flush();
-    m_error_flag = true;
-  }
-
-  // Restore the baseline
-  sgp30.restore_baseline();
-
-  // Start the readings every 1 sec
-  sgp30_timer.start();
-  #endif
-
   #ifdef HAS_HPMA
   // Setup HPMA115
   hpma115_init_t hpma115_init;
@@ -317,25 +234,7 @@ void setup() {
   }
   #endif
 
-  // Begin BME680 work
-  #ifdef HAS_BME680
-  bsec.begin(BME680_I2C_ADDR_PRIMARY, Wire);
-  checkIaqSensorStatus();
 
-  // Set up BME680 sensors
-  bsec_virtual_sensor_t sensorList[7] = {
-    BSEC_OUTPUT_RAW_TEMPERATURE,
-    BSEC_OUTPUT_RAW_PRESSURE,
-    BSEC_OUTPUT_RAW_HUMIDITY,
-    BSEC_OUTPUT_RAW_GAS,
-    BSEC_OUTPUT_IAQ,
-    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE,
-    BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_HUMIDITY
-  };
-
-  bsec.updateSubscription(sensorList, 7, BSEC_SAMPLE_RATE_LP); //BSEC_SAMPLE_RATE_LP
-  checkIaqSensorStatus();
-  #endif
 
   // Start the timer
   timer.start();
@@ -403,11 +302,6 @@ void loop() {
       ccs811.set_env(si7021_data.temperature,si7021_data.humidity);
       #endif
 
-      // Set the env data for the SGP30
-      #ifdef HAS_SGP30
-      sgp30.set_env(si7021_data.temperature,si7021_data.humidity);
-      #endif
-
       // Concatinate temp and humidity data
       m_out = String( m_out + String::format("\"temperature\":%.2f,\"humidity\":%.2f",si7021_data.temperature, si7021_data.humidity) );
       Serial.println("temp rdy");
@@ -435,33 +329,6 @@ void loop() {
     }
     #endif
 
-    #ifdef HAS_SGP30
-    err_code = sgp30.read(&sgp30_data);
-
-    if ( err_code == SGP30_SUCCESS ) {
-
-      // concatinate sgp30 data
-      m_out = String( m_out + String::format(",\"sgp30_tvoc\":%d,\"sgp30_c02\":%d", sgp30_data.tvoc, sgp30_data.c02) );
-      Serial.println("sgp30 rdy");
-    } else {
-      Particle.publish("err", "sgp30" , PRIVATE, NO_ACK);
-      Serial.println("sgp30 err");
-    }
-    #endif
-
-    // bme680 data publish!
-    #ifdef HAS_BME680
-    if (m_bme680_ready) {
-      m_bme680_ready = false;
-      Serial.println("bme680 rdy");
-      m_out = String( m_out + String::format(",\"bme680_temp\":%.2f,\"bme680_pres\":%.2f", bsec.rawTemperature, bsec.pressure/100.0f) );
-      m_out = String( m_out + String::format(",\"bme680_hum\":%.2f,\"bme680_iaq\":%.2f", bsec.rawHumidity, bsec.iaqEstimate) );
-      m_out = String( m_out + String::format(",\"bme680_temp_calc\":%.2f,\"bme680_hum_calc\":%.2f", bsec.temperature, bsec.humidity) );
-    } else {
-      Serial.println("bme680 err");
-    }
-    #endif
-
     // Process PM2.5 and PM10 results
     // This is slightly different from the other readings
     // due to the fact that it should be shut off when not taking a reading
@@ -486,30 +353,9 @@ void loop() {
     ccs811.save_baseline();
     #endif
 
-    #ifdef HAS_SGP30
-    sgp30.save_baseline();
-    #endif
   }
-
-  #ifdef HAS_SGP30
-  // Processes any avilable serial data
-  err_code = sgp30.process();
-
-  if( err_code != SGP30_SUCCESS ) {
-    Serial.println("sp30 process error");
-  }
-  #endif
 
   hpma115.process();
-
-  // Proces BME680
-  #ifdef HAS_BME680
-  if (bsec.run()) { // If new data is available
-    m_bme680_ready = true;
-  } else {
-    checkIaqSensorStatus();
-  }
-  #endif
 
   // Send updates/communicate with service when connected
   if( Particle.connected() ) {
