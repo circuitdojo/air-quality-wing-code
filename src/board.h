@@ -11,9 +11,14 @@
 
 #define CCS811_WAKE_PIN D6
 #define CCS811_INT_PIN  D8
-#define CCS811_RST_PIN  D7
+#define CCS811_RST_PIN  D4
 
 #define HPMA1150_EN_PIN D5
+
+#define PIR_INT_PIN     A3
+
+#define GPS_EN_PIN      A5
+#define GPS_FIX_PIN     A4
 
 // Address for CCS811, it is setable in hardware so should be defined here
 #define CCS811_ADDRESS  0x5a
