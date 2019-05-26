@@ -10,10 +10,15 @@
 
 HPMA115::HPMA115(void){}
 
-uint32_t HPMA115::setup(hpma115_init_t *p_init) {
+uint32_t HPMA115::setup(hpma115_init_t *p_init,serial_lock_t * p_serial_lock) {
 
-  // Set up serial
-  Serial1.begin(HPMA115_BAUD);
+  // Returns null error
+  if( p_init == NULL || p_serial_lock == NULL ) {
+    return HPMA115_NULL_ERROR;
+  }
+
+  // Sets serial lock
+  this->serial_lock = p_serial_lock;
 
   // Set up callback
   this->callback = p_init->callback;
@@ -32,21 +37,37 @@ uint32_t HPMA115::setup(hpma115_init_t *p_init) {
 
 uint32_t HPMA115::enable(){
 
+  // Return busy error
+  if( this->serial_lock->owner != serial_lock_none ){
+    return HPMA115_SERIAL_BUSY;
+  }
+
+  // Set up serial
+  Serial1.begin(HPMA115_BAUD);
+
   // set gpio high
   pinMode(this->enable_pin, OUTPUT);
   digitalWrite(this->enable_pin, HIGH); // Has a pulldown
 
-  if( this->state == DISABLED ) {
-    this->state = READY;
+  if( this->state == HPMA_DISABLED ) {
+    this->state = HPMA_READY;
   }
 
   return HPMA115_SUCCESS;
 }
 uint32_t HPMA115::disable() {
 
+  // Return busy error
+  if( this->serial_lock->owner != serial_lock_hpma ){
+    return HPMA115_SERIAL_BUSY;
+  }
+
+  // Release serial for use elsewhere
+  Serial1.end();
+
   // Disable device
   pinMode(this->enable_pin, INPUT);
-  this->state = DISABLED;
+  this->state = HPMA_DISABLED;
 
   // Reset rx count
   this->rx_count = 0;
@@ -57,8 +78,8 @@ uint32_t HPMA115::disable() {
 void HPMA115::int_handler() {
 
   // If we are ready, change state
-  if ( this->state == READY ) {
-    this->state = DATA_AVAILABLE;
+  if ( this->state == HPMA_READY ) {
+    this->state = HPMA_DATA_AVAILABLE;
   }
 
 }
@@ -76,8 +97,11 @@ bool HPMA115::is_enabled() {
 
 void HPMA115::process() {
 
+  // Checking if the hpma115 owns the serial bus
+  if( this->serial_lock->owner == serial_lock_hpma ) {
+
     // First read
-    if( this->state == DATA_AVAILABLE && Serial1.available() >= 2 ) {
+    if( this->state == HPMA_DATA_AVAILABLE && Serial1.available() >= 2 ) {
 
       // Erase the rx_buf
       memset(this->rx_buf,0,32);
@@ -95,13 +119,13 @@ void HPMA115::process() {
 
       // Confirm its value
       if( this->rx_buf[1] == 0x4d ) {
-        this->state = DATA_READ;
+        this->state = HPMA_DATA_READ;
       }
 
     }
 
     // Read remaining bytes
-    if( this->state == DATA_READ && Serial1.available() >= 30) {
+    if( this->state == HPMA_DATA_READ && Serial1.available() >= 30) {
       // Then read
       Serial1.readBytes(this->rx_buf+2,30);
 
@@ -125,7 +149,7 @@ void HPMA115::process() {
         Serial.println("hpma: checksum fail");
         Particle.publish("err", "hpma: checksum" , PRIVATE, NO_ACK);
 
-        this->state = READY;
+        this->state = HPMA_READY;
         return;
       }
 
@@ -137,9 +161,9 @@ void HPMA115::process() {
 
         // Go right to read or go to ready state if no data
         if( Serial1.available() > 0 ) {
-          this->state = DATA_AVAILABLE;
+          this->state = HPMA_DATA_AVAILABLE;
         } else {
-          this->state = READY;
+          this->state = HPMA_READY;
         }
 
         return;
@@ -156,7 +180,8 @@ void HPMA115::process() {
       this->callback(&this->data);
 
       // State is back to ready
-      this->state = READY;
+      this->state = HPMA_READY;
 
     }
+  }
 }

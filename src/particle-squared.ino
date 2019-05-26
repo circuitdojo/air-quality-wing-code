@@ -10,6 +10,7 @@
 #include "ccs811.h"
 #include "hpma115.h"
 #include "board.h"
+#include "gps.h"
 
 // Firmware update
 #include "CCS811_FW_App_v2_0_1.h"
@@ -36,6 +37,7 @@ static uint32_t m_reading_period = MEASUREMENT_DELAY_MS;
 static Si7021  si7021 = Si7021();
 static CCS811  ccs811 = CCS811();
 static HPMA115 hpma115 = HPMA115();
+static GPS     gps     = GPS();
 
 // Set up timer
 Timer timer(m_reading_period, timer_handler);
@@ -52,18 +54,19 @@ static hpma115_data_t hpma115_data;
 static ccs811_data_t ccs811_data;
 #endif
 
-// Data check bool
-static bool data_check = false;
-
-// Error reset flag
+// Event flags
+static bool data_check   = false;
+static bool m_pir_event  = false;
 static bool m_error_flag = false;
-
-// Data state ready
 static bool m_data_ready = false;
+
+// Locking serial to one driver at a time
+static serial_lock_t m_serial_lock;
 
 // State of baseline
 static uint32_t m_period_counter = 0;
 
+// String for sending JSON data to the web
 static String m_out;
 
 // Definition of timer handler
@@ -134,13 +137,22 @@ int set_reading_period( String period ) {
 
 }
 
+// Event for recieving motion alerts
+void pir_event_handler(void) {
+  m_pir_event = true;
+}
+
+// Event handler for GPS
+void gps_event_handler(gps_data_t * p_data) {
+
+}
 
 // setup() runs once, when the device is first turned on.
 void setup() {
 
-  // Turn off the LED
-  // RGB.control(true);
-  // RGB.brightness(0);
+  // Turn off the LED. This app controls the LED.
+  RGB.control(true);
+  RGB.brightness(0);
 
   // Set up PC based UART (for debugging)
   Serial.blockOnOverrun(false);
@@ -224,6 +236,7 @@ void setup() {
   hpma115_init_t hpma115_init;
   hpma115_init.callback = hpma_evt_handler;
   hpma115_init.enable_pin = HPMA1150_EN_PIN;
+  hpma115_init.serial_lock = &m_serial_lock;
 
   // Init HPM115 sensor
   err_code = hpma115.setup(&hpma115_init);
@@ -234,7 +247,32 @@ void setup() {
   }
   #endif
 
+  // Set up GPS
+  gps_init_t gps_init = {
+    .enable_pin = GPS_EN_PIN,
+    .fix_pin = GPS_FIX_PIN,
+    .callback = gps_event_handler
+  };
 
+  err_code = gps.init(&gps_init,&m_serial_lock);
+  if( err_code != GPS_SUCCESS ) {
+    Serial.printf("gps init err %d\n", err_code);
+    Serial.flush();
+    m_error_flag = true;
+  }
+
+  // Enable the gps
+  err_code = gps.enable();
+  if( err_code != GPS_SUCCESS ) {
+    Serial.printf("gps enable err %d\n", err_code);
+    Serial.flush();
+    m_error_flag = true;
+  }
+
+  // Set up PIR interrupt
+  pinMode(PIR_INT_PIN, INPUT_PULLDOWN);
+  attachInterrupt(PIR_INT_PIN, pir_event_handler, RISING);
+  // TODO: wake the device up from sleep
 
   // Start the timer
   timer.start();
@@ -276,6 +314,15 @@ void loop() {
 
     // Reset to false
     m_data_ready = false;
+  }
+
+  // If there is a PIR event handle that here
+  if( m_pir_event ) {
+    m_pir_event = false;
+
+    Serial.println("pir event");
+
+    // TODO: define action here (start taking measurements)
   }
 
   // If we're greater than or equal to the measurement delay
@@ -354,6 +401,9 @@ void loop() {
     #endif
 
   }
+
+  // Process gps stuff
+  gps.process();
 
   hpma115.process();
 
