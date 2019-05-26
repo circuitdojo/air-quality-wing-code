@@ -15,6 +15,8 @@
 
 #define HPMA1150_EN_PIN D5
 
+#define PIEZO_PIN       A2
+
 #define PIR_INT_PIN     A3
 
 #define GPS_EN_PIN      A5

@@ -23,9 +23,19 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 #define WATCHDOG_TIMEOUT_MS 120000
 
 // Delay and timing related contsants
-#define MEASUREMENT_DELAY_MS 120000
+#define MEASUREMENT_DELAY_MS 300000
+#define MEASUREMENT_DELAY_ALERT_MS 60000
 #define MIN_MEASUREMENT_DELAY_MS 10000
 #define HPMA_TIMEOUT_MS 10000
+
+// Hazard levels
+#define PM25_LOW       15
+#define PM25_MED       30
+#define PM25_HIGH      55
+#define PM25_HAZARDOUS 110
+
+#define LED_ON_INTERVAL 10000
+#define ALERT_INTERVAL 60000
 
 // Timer handler
 void timer_handler();
@@ -55,10 +65,15 @@ static ccs811_data_t ccs811_data;
 #endif
 
 // Event flags
-static bool data_check   = false;
-static bool m_pir_event  = false;
-static bool m_error_flag = false;
-static bool m_data_ready = false;
+static bool data_check      = false;
+static bool m_pir_event     = false;
+static bool m_error_flag    = false;
+static bool m_data_ready    = false;
+static bool m_led_motion_on = false;
+
+// Motion ticks
+static uint32_t m_motion_ticks = 0;
+static uint32_t m_alarm_ticks = 0;
 
 // Locking serial to one driver at a time
 static serial_lock_t m_serial_lock;
@@ -68,6 +83,36 @@ static uint32_t m_period_counter = 0;
 
 // String for sending JSON data to the web
 static String m_out;
+
+// Wakeup tune
+void wakeup_tune() {
+  // Set pin mode
+  pinMode(PIEZO_PIN, OUTPUT);
+
+  // Actuate the piezo`
+  for( int i = 2; i-- > 0; ) {
+    analogWrite(PIEZO_PIN, 128, 2000);
+    delay(50);
+    analogWrite(PIEZO_PIN, 0, 2000);
+    delay(50);
+  }
+}
+
+// Wakeup tune
+void alert_tune() {
+  // Set pin mode
+  pinMode(PIEZO_PIN, OUTPUT);
+
+  // Actuate the piezo
+  for( int i = 3; i-- > 0; ) {
+    analogWrite(PIEZO_PIN, 128, 2000);
+    delay(200);
+    analogWrite(PIEZO_PIN, 0, 2000);
+    delay(200);
+  }
+
+}
+
 
 // Definition of timer handler
 void timer_handler() {
@@ -283,6 +328,9 @@ void setup() {
   // Set up keep alive
   Particle.keepAlive(60);
 
+  // Beep beep
+  wakeup_tune();
+
 }
 
 // loop() runs over and over again, as quickly as it can execute.
@@ -297,12 +345,14 @@ void loop() {
     Mesh.connect();
   }
   #else
+  // TODO: connect only when data is available
   if (Particle.connected() == false) {
     Particle.connect();
   }
   #endif
 
   // If all the data is ready, send it as one data blob
+  // TODO: only publish when connected...
   if ( m_data_ready ) {
     Serial.println("data send");
 
@@ -312,17 +362,107 @@ void loop() {
     // Publish data
     Particle.publish("blob", m_out , PRIVATE, WITH_ACK);
 
+    // TODO: disconnect on success
+
     // Reset to false
     m_data_ready = false;
   }
 
   // If there is a PIR event handle that here
-  if( m_pir_event ) {
-    m_pir_event = false;
+  if( m_pir_event && !m_led_motion_on ) {
 
     Serial.println("pir event");
 
-    // TODO: define action here (start taking measurements)
+    // get last pm25 measurement
+    // and evaluate using the scale from here:
+    // https://en.wikipedia.org/wiki/Air_quality_index#Europe
+    if( hpma115_data.pm25 > PM25_HAZARDOUS ) {
+      RGB.color(255,0,0);
+    } else if ( hpma115_data.pm25 > PM25_HIGH ) {
+      RGB.color(241,132,50);
+    } else if ( hpma115_data.pm25 > PM25_MED ) {
+      RGB.color(233,194,67);
+    } else if ( hpma115_data.pm25 > PM25_LOW ) {
+      RGB.color(183,197,93);
+    } else {
+      RGB.color(0,255,0);
+    }
+
+    // turn on LED
+    uint8_t bright = 0;
+    for( int i = 10; i-- > 0; ) {
+      RGB.brightness(bright+=25);
+      delay(100);
+    }
+
+    // Full powah
+    RGB.brightness(255);
+
+    // Set ticks
+    m_motion_ticks = millis();
+
+    // Flag to check to turn things off later
+    m_led_motion_on = true;
+
+    // TODO: define action here (start taking measurements
+
+  }
+
+  // Handle if the LED is turned on
+  if( m_led_motion_on ) {
+
+    // If we've rolled over
+    if( millis() < m_motion_ticks ) {
+      m_motion_ticks = 0;
+    }
+
+    // Check if the LED has been on for more tan 10 sec
+    if( millis() - m_motion_ticks > LED_ON_INTERVAL ) {
+
+      uint8_t bright = 255;
+
+      // shut down
+      for( int i = 10; i-- > 0; ) {
+        RGB.brightness(bright-=25);
+        delay(100);
+      }
+
+      // Brightness to 0
+      RGB.brightness(0);
+
+      // Reset flags
+      m_led_motion_on = false;
+      m_pir_event = false;
+    }
+
+  }
+
+  // Set audible alarm
+  if ( hpma115_data.pm25 > PM25_HIGH ) {
+
+    // Check reading every minute
+    if( m_reading_period != MEASUREMENT_DELAY_ALERT_MS ) {
+      m_reading_period = MEASUREMENT_DELAY_ALERT_MS;
+      timer.changePeriod(m_reading_period);
+    }
+
+    // If we've overflowed reset
+    if( millis() < m_alarm_ticks ) {
+      m_alarm_ticks = 0;
+    }
+
+    //Every minute play alart tune
+    if( millis() - m_alarm_ticks > ALERT_INTERVAL ) {
+      m_alarm_ticks = millis();
+      alert_tune();
+    }
+
+  } else {
+    // Check reading every 5 min
+    if( m_reading_period != MEASUREMENT_DELAY_MS ) {
+      m_reading_period = MEASUREMENT_DELAY_MS;
+      timer.changePeriod(m_reading_period);
+    }
   }
 
   // If we're greater than or equal to the measurement delay
