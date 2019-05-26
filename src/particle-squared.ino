@@ -344,16 +344,23 @@ void loop() {
     Serial.println("Not connected..");
     Mesh.connect();
   }
-  #else
+  #elif PLATFORM_ID == PLATFORM_ARGON
   // TODO: connect only when data is available
   if (Particle.connected() == false) {
+    Particle.connect();
+  }
+  #elif PLATFORM_ID == PLATFORM_BORON
+  // connect only when data is available
+  if (m_data_ready && !Particle.connected()) {
+    Cellular.on();
+    Cellular.connect();
     Particle.connect();
   }
   #endif
 
   // If all the data is ready, send it as one data blob
-  // TODO: only publish when connected...
-  if ( m_data_ready ) {
+  // only publish when connected...
+  if ( m_data_ready && Particle.connected() ) {
     Serial.println("data send");
 
     // Cap off the JSON
@@ -362,7 +369,11 @@ void loop() {
     // Publish data
     Particle.publish("blob", m_out , PRIVATE, WITH_ACK);
 
-    // TODO: disconnect on success
+    // disconnect on success
+    #if PLATFORM_ID == PLATFORM_BORON
+    Particle.disconnect();
+    Cellular.off();
+    #endif
 
     // Reset to false
     m_data_ready = false;
