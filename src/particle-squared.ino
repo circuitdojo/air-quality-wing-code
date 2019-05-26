@@ -484,12 +484,6 @@ void loop() {
     }
   }
 
-  // Publish location
-  if ( m_has_location ) {
-    m_out = String( m_out + String::format("\"lat\":%i%c,\"long\":%i%c",gps_data.lat,gps_data.lat_c,gps_data.lon,gps_data.lon_c) );
-    m_has_location = false;
-  }
-
   // If we're greater than or equal to the measurement delay
   // start taking measurements!
   if( data_check ) {
@@ -540,6 +534,19 @@ void loop() {
       Serial.println("tvoc err");
     }
     #endif
+
+    // Publish location
+    if ( m_has_location ) {
+      Serial.println("has location");
+      int32_t lat_deg = gps_data.lat/10000000;
+      int32_t long_deg = gps_data.lon/10000000;
+      int32_t lat_min = gps_data.lat-(lat_deg*10000000);
+      int32_t long_min = gps_data.lon-(long_deg*10000000);
+      m_out = String( m_out + String::format(",\"lat\":\"%i.%i%c\",\"long\":\"%i.%i%c\"",lat_deg,lat_min,gps_data.lat_c,long_deg,long_min,gps_data.lon_c) );
+      Serial.printf("%i %i\n", lat_deg,long_deg);
+      Serial.printf("%i %i\n", lat_min,long_min);
+      m_has_location = false;
+    }
 
     // Process PM2.5 and PM10 results
     // This is slightly different from the other readings

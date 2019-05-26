@@ -150,6 +150,9 @@ uint32_t GPS::process() {
       this->last_position.time.seconds = gps.seconds;
       this->last_position.time.milliseconds = gps.milliseconds;
 
+      // Callback
+      this->config.callback(&this->last_position);
+
       // Print out location
       Serial.printf("fixed: %i%c, %i%c\n",this->last_position.lat,this->last_position.lat_c,this->last_position.lon,this->last_position.lon_c);
 
