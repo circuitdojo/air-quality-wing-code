@@ -10,7 +10,7 @@
 
 HPMA115::HPMA115(void){}
 
-uint32_t HPMA115::setup(hpma115_init_t *p_init,serial_lock_t * p_serial_lock) {
+uint32_t HPMA115::setup(hpma115_init_t *p_init, serial_lock_t * p_serial_lock) {
 
   // Returns null error
   if( p_init == NULL || p_serial_lock == NULL ) {
@@ -42,6 +42,9 @@ uint32_t HPMA115::enable(){
     return HPMA115_SERIAL_BUSY;
   }
 
+  // Set the owner
+  this->serial_lock->owner = serial_lock_hpma;
+
   // Set up serial
   Serial1.begin(HPMA115_BAUD);
 
@@ -71,6 +74,9 @@ uint32_t HPMA115::disable() {
 
   // Reset rx count
   this->rx_count = 0;
+
+  // Release the owner
+  this->serial_lock->owner = serial_lock_none;
 
   return HPMA115_SUCCESS;
 }

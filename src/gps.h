@@ -6,6 +6,8 @@
 #include "serial_lock.h"
 #include <Adafruit_GPS.h>
 
+#define GPS_BAUD 9600
+
 // Error codes
 enum {
   GPS_SUCCESS,

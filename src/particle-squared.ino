@@ -239,7 +239,7 @@ void setup() {
   hpma115_init.serial_lock = &m_serial_lock;
 
   // Init HPM115 sensor
-  err_code = hpma115.setup(&hpma115_init);
+  err_code = hpma115.setup(&hpma115_init,&m_serial_lock);
   if (err_code != HPMA115_SUCCESS) {
     Serial.printf("hpma115 enable err %d\n", err_code);
     Serial.flush();

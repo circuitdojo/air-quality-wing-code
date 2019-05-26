@@ -43,7 +43,7 @@ uint32_t GPS::enable() {
   // Set up lock
   this->serial_lock->owner = serial_lock_gps;
 
-  gps.begin(9600);
+  gps.begin(GPS_BAUD);
 
   // uncomment this line to turn on RMC (recommended minimum) and GGA (fix data) including altitude
   gps.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
@@ -149,6 +149,9 @@ uint32_t GPS::process() {
       this->last_position.time.minute = gps.minute;
       this->last_position.time.seconds = gps.seconds;
       this->last_position.time.milliseconds = gps.milliseconds;
+
+      // Print out location
+      Serial.printf("fixed: %i%c, %i%c\n",this->last_position.lat,this->last_position.lat_c,this->last_position.lon,this->last_position.lon_c);
 
       // disable device
       this->disable();
