@@ -59,6 +59,7 @@ ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
 // Data
 static si7021_data_t si7021_data, si7021_data_last;
 static hpma115_data_t hpma115_data;
+static gps_data_t gps_data;
 
 #ifdef HAS_CCS811
 static ccs811_data_t ccs811_data;
@@ -70,6 +71,7 @@ static bool m_pir_event     = false;
 static bool m_error_flag    = false;
 static bool m_data_ready    = false;
 static bool m_led_motion_on = false;
+static bool m_has_location  = false;
 
 // Motion ticks
 static uint32_t m_motion_ticks = 0;
@@ -189,6 +191,12 @@ void pir_event_handler(void) {
 
 // Event handler for GPS
 void gps_event_handler(gps_data_t * p_data) {
+
+  // Copy data over
+  gps_data = *p_data;
+
+  // Set flag to add to output data;
+  m_has_location = true;
 
 }
 
@@ -474,6 +482,12 @@ void loop() {
       m_reading_period = MEASUREMENT_DELAY_MS;
       timer.changePeriod(m_reading_period);
     }
+  }
+
+  // Publish location
+  if ( m_has_location ) {
+    m_out = String( m_out + String::format("\"lat\":%i%c,\"long\":%i%c",gps_data.lat,gps_data.lat_c,gps_data.lon,gps_data.lon_c) );
+    m_has_location = false;
   }
 
   // If we're greater than or equal to the measurement delay
