@@ -133,8 +133,6 @@ uint32_t GPS::process() {
     // Once we get a fix, store the info and shutdown
     if( gps.fix ) {
 
-      Serial.println("we have a fix!");
-
       // store the lat long
       this->last_position.lat = gps.latitude_fixed;
       this->last_position.lat_c = gps.lat;
