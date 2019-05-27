@@ -27,6 +27,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 #define MEASUREMENT_DELAY_ALERT_MS 60000
 #define MIN_MEASUREMENT_DELAY_MS 10000
 #define HPMA_TIMEOUT_MS 10000
+#define CELLULAR_DISCONNECT_TIMEOUT_MS 2000
 
 // Hazard levels
 #define PM25_LOW       15
@@ -51,6 +52,7 @@ static GPS     gps     = GPS();
 
 // Set up timer
 Timer timer(m_reading_period, timer_handler);
+Timer disconnect_timer(CELLULAR_DISCONNECT_TIMEOUT_MS, cellular_timer_handler, true);
 Timer hpma_timer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
 
 // Watchdog
@@ -72,6 +74,7 @@ static bool m_error_flag    = false;
 static bool m_data_ready    = false;
 static bool m_led_motion_on = false;
 static bool m_has_location  = false;
+static bool m_disconnect    = false;
 
 // Motion ticks
 static uint32_t m_motion_ticks = 0;
@@ -115,6 +118,13 @@ void alert_tune() {
 
 }
 
+
+// Cellular timer - handles setting disconnect flag after
+// We're done using a Particle.publish() command
+// i.e. saves battery
+void cellular_timer_handler() {
+  m_disconnect = true;
+}
 
 // Definition of timer handler
 void timer_handler() {
@@ -334,7 +344,18 @@ void setup() {
   Particle.function("set_period", set_reading_period);
 
   // Set up keep alive
+  #if PLATFORM_ID != PLATFORM_BORON
   Particle.keepAlive(60);
+  #endif
+
+  // Publish vitals once on startup
+  #if PLATFORM_ID == PLATFORM_BORON
+  Cellular.setActiveSim(EXTERNAL_SIM);
+  Cellular.clearCredentials();
+
+  Particle.connect();
+  Particle.publishVitals(0);
+  #endif
 
   // Beep beep
   wakeup_tune();
@@ -359,12 +380,26 @@ void loop() {
   }
   #elif PLATFORM_ID == PLATFORM_BORON
   // connect only when data is available
-  if (m_data_ready && !Particle.connected()) {
+  if (!Particle.connected()) { // m_data_ready &&
     Cellular.on();
-    Cellular.connect();
+    Cellular.command("AT+CGDCONT=2,\"IP\",\"\"","soracom.io");
+    Cellular.command("AT+UAUTHREQ=2,%d,\"%s\",\"%s\"",2,"sora","sora");
     Particle.connect();
   }
   #endif
+
+  // This gets run after cellular disconnect timer expires
+  if( m_disconnect ) {
+    m_disconnect = false;
+
+    Serial.println("disconnect");
+
+    // disconnect on success
+    #if PLATFORM_ID == PLATFORM_BORON
+    Particle.disconnect();
+    Cellular.off();
+    #endif
+  }
 
   // If all the data is ready, send it as one data blob
   // only publish when connected...
@@ -377,11 +412,8 @@ void loop() {
     // Publish data
     Particle.publish("blob", m_out , PRIVATE, WITH_ACK);
 
-    // disconnect on success
-    #if PLATFORM_ID == PLATFORM_BORON
-    Particle.disconnect();
-    Cellular.off();
-    #endif
+    // Start disconnect timer
+    disconnect_timer.start();
 
     // Reset to false
     m_data_ready = false;
@@ -543,8 +575,8 @@ void loop() {
       int32_t lat_min = gps_data.lat-(lat_deg*10000000);
       int32_t long_min = gps_data.lon-(long_deg*10000000);
       m_out = String( m_out + String::format(",\"lat\":\"%i.%i%c\",\"long\":\"%i.%i%c\"",lat_deg,lat_min,gps_data.lat_c,long_deg,long_min,gps_data.lon_c) );
-      Serial.printf("%i %i\n", lat_deg,long_deg);
-      Serial.printf("%i %i\n", lat_min,long_min);
+      // Serial.printf("%i %i\n", lat_deg,long_deg);
+      // Serial.printf("%i %i\n", lat_min,long_min);
       m_has_location = false;
     }
 

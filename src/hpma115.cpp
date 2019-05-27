@@ -58,6 +58,7 @@ uint32_t HPMA115::enable(){
 
   return HPMA115_SUCCESS;
 }
+
 uint32_t HPMA115::disable() {
 
   // Return busy error
