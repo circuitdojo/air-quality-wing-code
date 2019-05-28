@@ -153,9 +153,6 @@ uint32_t GPS::process() {
 
       // Print out location
       Serial.printf("fixed: %i%c, %i%c\n",this->last_position.lat,this->last_position.lat_c,this->last_position.lon,this->last_position.lon_c);
-
-      // disable device
-      this->disable();
     }
 
   }

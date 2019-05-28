@@ -50,6 +50,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // Timer handler
 void measurement_timer_handler();
+void check_position_timer_handler();
 
 // Reading delay ms
 static uint32_t m_reading_period = MEASUREMENT_DELAY_MS;
@@ -64,6 +65,7 @@ static GPS     gps     = GPS();
 Timer measurement_timer(m_reading_period, measurement_timer_handler);
 Timer disconnect_timer(CELLULAR_DISCONNECT_TIMEOUT_MS, cellular_timer_handler, true);
 Timer hpma_timer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
+Timer check_position_timer(GPS_MEASUREMENT_MS, check_position_timer_handler);
 
 // Watchdog
 ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
@@ -151,6 +153,11 @@ void measurement_timer_handler() {
   data_check = true;
 }
 
+// prompts the device to update the position every hour
+void check_position_timer_handler() {
+  m_check_position = true;
+}
+
 // This fires after the hpma should have finished...
 void hpma_timeout_handler() {
   if( hpma115.is_enabled() ) {
@@ -229,6 +236,12 @@ void gps_event_handler(gps_data_t * p_data) {
 
   // Set flag to add to output data;
   m_has_location = true;
+
+  // Lets push this info to the cloud immediately
+  data_check = true;
+
+  // disable gps device
+  gps.disable();
 
 }
 
@@ -583,6 +596,19 @@ void loop() {
     if( m_reading_period != MEASUREMENT_DELAY_MS ) {
       m_reading_period = MEASUREMENT_DELAY_MS;
       measurement_timer.changePeriod(m_reading_period);
+    }
+  }
+
+  // Enable gps for a single reading
+  if( m_check_position && !data_check ) {
+    m_check_position = false;
+
+    // Eanble gps
+    err_code = gps.enable();
+    if( err_code != GPS_SUCCESS ) {
+      Serial.printf("gps enable err %d\n", err_code);
+      Serial.flush();
+      m_error_flag = true;
     }
   }
 
