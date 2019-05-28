@@ -32,10 +32,11 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 #define WATCHDOG_TIMEOUT_MS 120000
 
 // Delay and timing related contsants
-#define MEASUREMENT_DELAY_MS 300000
-#define MEASUREMENT_DELAY_ALERT_MS 60000
-#define MIN_MEASUREMENT_DELAY_MS 10000
-#define HPMA_TIMEOUT_MS 10000
+#define GPS_MEASUREMENT_MS             3600000
+#define MEASUREMENT_DELAY_MS           300000
+#define MEASUREMENT_DELAY_ALERT_MS     60000
+#define MIN_MEASUREMENT_DELAY_MS       10000
+#define HPMA_TIMEOUT_MS                10000
 #define CELLULAR_DISCONNECT_TIMEOUT_MS 2000
 
 // Hazard levels
@@ -48,7 +49,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 #define ALERT_INTERVAL 60000
 
 // Timer handler
-void timer_handler();
+void measurement_timer_handler();
 
 // Reading delay ms
 static uint32_t m_reading_period = MEASUREMENT_DELAY_MS;
@@ -60,7 +61,7 @@ static HPMA115 hpma115 = HPMA115();
 static GPS     gps     = GPS();
 
 // Set up timer
-Timer timer(m_reading_period, timer_handler);
+Timer measurement_timer(m_reading_period, measurement_timer_handler);
 Timer disconnect_timer(CELLULAR_DISCONNECT_TIMEOUT_MS, cellular_timer_handler, true);
 Timer hpma_timer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
 
@@ -85,14 +86,15 @@ TCPClient client;
 FuelGauge fuel;
 
 // Event flags
-static bool data_check      = true;
-static bool m_pir_event     = false;
-static bool m_error_flag    = false;
-static bool m_data_ready    = false;
-static bool m_led_motion_on = false;
-static bool m_has_location  = false;
-static bool m_disconnect    = false;
-static bool m_tcp_publish   = false;
+static bool data_check       = false;
+static bool m_pir_event      = false;
+static bool m_error_flag     = false;
+static bool m_data_ready     = false;
+static bool m_led_motion_on  = false;
+static bool m_has_location   = false;
+static bool m_disconnect     = false;
+static bool m_tcp_publish    = false;
+static bool m_check_position = false;
 
 // Motion ticks
 static uint32_t m_motion_ticks = 0;
@@ -145,7 +147,7 @@ void cellular_timer_handler() {
 }
 
 // Definition of timer handler
-void timer_handler() {
+void measurement_timer_handler() {
   data_check = true;
 }
 
@@ -204,7 +206,7 @@ int set_reading_period( String period ) {
     m_reading_period = temp_period;
 
     // Change period if variable is updated
-    timer.changePeriod(m_reading_period);
+    measurement_timer.changePeriod(m_reading_period);
 
     return 1;
 
@@ -358,7 +360,8 @@ void setup() {
   // TODO: wake the device up from sleep
 
   // Start the timer
-  timer.start();
+  measurement_timer.start();
+  check_position_timer.start();
 
   // Set up cloud variable
   #if BACKEND_ID == BACKEND_PARTICLE
@@ -561,7 +564,7 @@ void loop() {
     // Check reading every minute
     if( m_reading_period != MEASUREMENT_DELAY_ALERT_MS ) {
       m_reading_period = MEASUREMENT_DELAY_ALERT_MS;
-      timer.changePeriod(m_reading_period);
+      measurement_timer.changePeriod(m_reading_period);
     }
 
     // If we've overflowed reset
@@ -579,7 +582,7 @@ void loop() {
     // Check reading every 5 min
     if( m_reading_period != MEASUREMENT_DELAY_MS ) {
       m_reading_period = MEASUREMENT_DELAY_MS;
-      timer.changePeriod(m_reading_period);
+      measurement_timer.changePeriod(m_reading_period);
     }
   }
 
