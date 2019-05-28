@@ -15,6 +15,15 @@
 // Firmware update
 #include "CCS811_FW_App_v2_0_1.h"
 
+SerialLogHandler logHandler(LOG_LEVEL_ERROR);
+
+#define BACKEND_PARTICLE 0
+#define BACKEND_SORACOM  1
+
+#ifndef BACKEND_ID
+#define BACKEND_ID BACKEND_SORACOM
+#endif
+
 #if PLATFORM_ID != PLATFORM_XENON
 SYSTEM_MODE(SEMI_AUTOMATIC);
 #endif
@@ -67,14 +76,23 @@ static gps_data_t gps_data;
 static ccs811_data_t ccs811_data;
 #endif
 
+#if BACKEND_ID == BACKEND_SORACOM
+// Define the TCP client
+TCPClient client;
+#endif
+
+// Fuel gauge output
+FuelGauge fuel;
+
 // Event flags
-static bool data_check      = false;
+static bool data_check      = true;
 static bool m_pir_event     = false;
 static bool m_error_flag    = false;
 static bool m_data_ready    = false;
 static bool m_led_motion_on = false;
 static bool m_has_location  = false;
 static bool m_disconnect    = false;
+static bool m_tcp_publish   = false;
 
 // Motion ticks
 static uint32_t m_motion_ticks = 0;
@@ -87,7 +105,7 @@ static serial_lock_t m_serial_lock;
 static uint32_t m_period_counter = 0;
 
 // String for sending JSON data to the web
-static String m_out;
+static String m_out,m_tcp_out;
 
 // Wakeup tune
 void wakeup_tune() {
@@ -135,7 +153,9 @@ void timer_handler() {
 void hpma_timeout_handler() {
   if( hpma115.is_enabled() ) {
     Serial.println("hpma timeout");
+    #if BACKEND_ID == BACKEND_PARTICLE
     Particle.publish("err", "hpma timeout" , PRIVATE, NO_ACK);
+    #endif
     hpma115.disable();
   }
 
@@ -341,24 +361,23 @@ void setup() {
   timer.start();
 
   // Set up cloud variable
+  #if BACKEND_ID == BACKEND_PARTICLE
   Particle.function("set_period", set_reading_period);
 
   // Set up keep alive
-  #if PLATFORM_ID != PLATFORM_BORON
   Particle.keepAlive(60);
   #endif
 
   // Publish vitals once on startup
   #if PLATFORM_ID == PLATFORM_BORON
   Cellular.setActiveSim(EXTERNAL_SIM);
-  Cellular.clearCredentials();
-
-  Particle.connect();
-  Particle.publishVitals(0);
+  Cellular.setCredentials("soracom.io","sora","sora");
   #endif
 
   // Beep beep
   wakeup_tune();
+
+  delay(2000);
 
 }
 
@@ -380,44 +399,92 @@ void loop() {
   }
   #elif PLATFORM_ID == PLATFORM_BORON
   // connect only when data is available
-  if (!Particle.connected()) { // m_data_ready &&
+  if (m_data_ready && !Cellular.ready() && !Cellular.connecting()) {
     Cellular.on();
-    Cellular.command("AT+CGDCONT=2,\"IP\",\"\"","soracom.io");
-    Cellular.command("AT+UAUTHREQ=2,%d,\"%s\",\"%s\"",2,"sora","sora");
-    Particle.connect();
+    Cellular.connect();
   }
   #endif
 
   // This gets run after cellular disconnect timer expires
+  #if PLATFORM_ID == PLATFORM_BORON
   if( m_disconnect ) {
     m_disconnect = false;
 
     Serial.println("disconnect");
 
-    // disconnect on success
-    #if PLATFORM_ID == PLATFORM_BORON
-    Particle.disconnect();
-    Cellular.off();
+    #if BACKEND_ID == BACKEND_SORACOM
+    client.stop();
     #endif
+
+    // disconnect on success
+    Cellular.disconnect();
+    Cellular.off();
   }
+    #endif
 
   // If all the data is ready, send it as one data blob
   // only publish when connected...
-  if ( m_data_ready && Particle.connected() ) {
+  if ( m_data_ready && Cellular.ready() ) {
     Serial.println("data send");
 
     // Cap off the JSON
     m_out = String( m_out + "}");
 
-    // Publish data
+    // Publish data to Particle Cloud
+    #if BACKEND_ID == BACKEND_PARTICLE
     Particle.publish("blob", m_out , PRIVATE, WITH_ACK);
 
     // Start disconnect timer
+    #if PLATFORM_ID == PLATFORM_BORON
     disconnect_timer.start();
+    #endif
+
+    #elif BACKEND_ID == BACKEND_SORACOM
+
+    // Copy string
+    m_tcp_out = m_out;
+    m_tcp_publish = true;
+
+    #else
+    #error BACKEND_ID needs to be defined.
+    #endif
 
     // Reset to false
     m_data_ready = false;
+
   }
+
+  // While we have a response read it
+  #if BACKEND_ID == BACKEND_SORACOM
+
+  if( m_tcp_publish ) {
+    // Publish data to SORACOM
+    // Note: this is not ideal as it's not encrypted.
+    // But if using in conjunction with
+    // an end to end VPN tunnel it's less of an issue..
+    if( !client.status() ) {
+      client.connect("harvest.soracom.io", 8514);
+    } else {
+      int bytes = client.print(m_out);
+      int err = client.getWriteError();
+      if (err != 0) {
+        Log.trace("TCPClient::write() failed (error = %d), number of bytes written: %d", err, bytes);
+      } else {
+        m_tcp_publish = false;
+      }
+    }
+  }
+
+  // Once we have data
+  // Flush in rx buf
+  // and disconnect
+  if (client.available())
+  {
+    while(client.available()) client.read();
+    m_data_ready = false;
+    m_disconnect = true;
+  }
+  #endif
 
   // If there is a PIR event handle that here
   if( m_pir_event && !m_led_motion_on ) {
@@ -544,7 +611,9 @@ void loop() {
       m_out = String( m_out + String::format("\"temperature\":%.2f,\"humidity\":%.2f",si7021_data.temperature, si7021_data.humidity) );
       Serial.println("temp rdy");
     } else {
+      #if BACKEND_ID == BACKEND_PARTICLE
       Particle.publish("err", "temp" , PRIVATE, NO_ACK);
+      #endif
       Serial.println("temp err");
     }
 
@@ -562,10 +631,15 @@ void loop() {
       Serial.flush();
       m_error_flag = true;
     } else {
+      #if BACKEND_ID == BACKEND_PARTICLE
       Particle.publish("err", "tvoc" , PRIVATE, NO_ACK);
+      #endif
       Serial.println("tvoc err");
     }
     #endif
+
+    // Add battery info
+    m_out = String( m_out + String::format(",\"batt\":%f", fuel.getSoC()) );
 
     // Publish location
     if ( m_has_location ) {
@@ -574,7 +648,9 @@ void loop() {
       int32_t long_deg = gps_data.lon/10000000;
       int32_t lat_min = gps_data.lat-(lat_deg*10000000);
       int32_t long_min = gps_data.lon-(long_deg*10000000);
-      m_out = String( m_out + String::format(",\"lat\":\"%i.%i%c\",\"long\":\"%i.%i%c\"",lat_deg,lat_min,gps_data.lat_c,long_deg,long_min,gps_data.lon_c) );
+      const char * long_char = (gps_data.lon_c == 'W') ? "-" : "";
+      const char * lat_char = (gps_data.lat_c == 'N') ? "" : "-";
+      m_out = String( m_out + String::format(",\"lat\":\"%s%i.%i\",\"lng\":\"%s%i.%i\"",lat_char,lat_deg,lat_min,long_char,long_deg,long_min) );
       // Serial.printf("%i %i\n", lat_deg,long_deg);
       // Serial.printf("%i %i\n", lat_min,long_min);
       m_has_location = false;
@@ -612,9 +688,11 @@ void loop() {
   hpma115.process();
 
   // Send updates/communicate with service when connected
+  #if BACKEND_ID == BACKEND_PARTICLE
   if( Particle.connected() ) {
     Particle.process();
   }
+  #endif
 
   // Checking with WD -- if there's an error flag, no check in. That allows for a sufficent update window.
   if( !m_error_flag ) {
