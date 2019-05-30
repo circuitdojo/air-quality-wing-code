@@ -1,20 +1,32 @@
-# Particle Squared
+# The Canary: A Portable Air Quality Monitor
 
-![Render](images/render.png)
+![Finished product](images/canary.png)
 
-Particle^2 (pronounced Particle Squared) is a circuit board that helps you monitor the air quality around you. This repository is the code for Particle^2 which enables you to monitor humidity, temperature, air particulates, eC02 and TVOCs in one small package. You can use it with an Adafruit Feather compatible board or the newest mesh enabled boards from Particle. [For more information click here.](https://www.jaredwolff.com/particle-squared-air-quality-sensor/)
+This branch is the code for the Canary which enables you to monitor humidity, temperature, air particulates, eC02 and TVOCs using. The Canary is ready for LTE and can be used specifically with a Particle Boron. [For more information click here.](https://www.hackster.io/jaredwolff/the-canary-a-portable-air-quality-monitor-99a1f4)
 
-[To get yours go here.](https://www.jaredwolff.com/store/particle-squared/)
+[Looking to buy a Particle Squared? Go here.](https://www.jaredwolff.com/store/particle-squared/)
 
 ## Quick Start:
 
 1. Clone this repo onto a place on your machine: `git clone git@bitbucket.org:circuitdojo/particle-squared-code.git`
-2. Open the repo with Visual Code: (`code .` using the command line, or `file`->`open`)
-3. Open `/src/particle-squared.ino`
-4. Select your target device in the lower bar (Options are `xenon`, `argon`, `boron`)
-5. Hit `cmd` + `shift` + `p` to get the command menu
-6. Select `Compile application (local)`. You can also choose `Cloud flash` as long as `board.h` has not been modified.
-7. Enjoy playing around with your Particle Squared!
+2. Checkout the `workplace-monitor` branch
+3. Open the repo with Visual Code: (`code .` using the command line, or `file`->`open`)
+4. Open `/src/particle-squared.ino`
+5. Select your target device in the lower bar (Options are `xenon`, `argon`, `boron`) (Note: tested and working with `boron`)
+6. Hit `cmd` + `shift` + `p` to get the command menu
+7. Select `Compile application (local)`. You can also choose `Cloud flash` as long as `board.h` has not been modified.
+8. Enjoy playing around with the code!
+
+## SORACOM + Boron
+
+As of this writing, Boron does not support SORACOM out of the box. A few AT commands must be put before powering up the modem.
+
+```
+    Cellular.on();
+    Cellular.command("AT+CGDCONT=2,\"IP\",\"\"","soracom.io");
+    Cellular.command("AT+UAUTHREQ=2,%d,\"%s\",\"%s\"",2,"sora","sora");
+```
+This allows for successful PPP authentication with SORACOM's APN. For an official fix, check [this push request](https://github.com/particle-iot/device-os/pull/1798) for more info.
 
 ## Particle Basics
 
