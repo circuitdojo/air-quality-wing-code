@@ -19,13 +19,23 @@ This branch is the code for the Canary which enables you to monitor humidity, te
 
 ## SORACOM + Boron
 
-As of this writing, Boron does not support SORACOM out of the box. A few AT commands must be put before powering up the modem.
+As of this writing, Boron does not support SORACOM out of the box. A few AT commands must be put before powering up the modem. Follow the setup below to get everything working:
 
-```
+1. Clear your credentials and set the external SIM (if you haven't already)
+
+    Cellular.setActiveSim(EXTERNAL_SIM);
+    Cellular.clearCredentials();
+
+2. Then, when you wan to connect run these few commands.
+
     Cellular.on();
     Cellular.command("AT+CGDCONT=2,\"IP\",\"\"","soracom.io");
     Cellular.command("AT+UAUTHREQ=2,%d,\"%s\",\"%s\"",2,"sora","sora");
-```
+
+3. Make sure that the device is in SEMI_AUTOMATIC mode.
+
+    SYSTEM_MODE(SEMI_AUTOMATIC);
+
 This allows for successful PPP authentication with SORACOM's APN. For an official fix, check [this push request](https://github.com/particle-iot/device-os/pull/1798) for more info.
 
 ## Particle Basics
