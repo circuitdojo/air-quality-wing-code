@@ -32,12 +32,15 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 #define WATCHDOG_TIMEOUT_MS 120000
 
 // Delay and timing related contsants
-#define GPS_MEASUREMENT_MS             3600000
-#define MEASUREMENT_DELAY_MS           300000
-#define MEASUREMENT_DELAY_ALERT_MS     60000
-#define MIN_MEASUREMENT_DELAY_MS       10000
-#define HPMA_TIMEOUT_MS                10000
-#define CELLULAR_DISCONNECT_TIMEOUT_MS 2000
+#define SECOND_MS                      1000
+#define MINUTE_SEC                     60
+
+#define GPS_MEASUREMENT_MS             10 * MINUTE_SEC * SECOND_MS
+#define MEASUREMENT_DELAY_MS           5 * MINUTE_SEC * SECOND_MS
+#define MEASUREMENT_DELAY_ALERT_MS     MINUTE_SEC * SECOND_MS
+#define MIN_MEASUREMENT_DELAY_MS       10 * SECOND_MS
+#define HPMA_TIMEOUT_MS                10 * SECOND_MS
+#define CELLULAR_DISCONNECT_TIMEOUT_MS 2 * SECOND_MS
 
 // Hazard levels
 #define PM25_LOW       15
@@ -65,7 +68,6 @@ static GPS     gps     = GPS();
 Timer measurement_timer(m_reading_period, measurement_timer_handler);
 Timer disconnect_timer(CELLULAR_DISCONNECT_TIMEOUT_MS, cellular_timer_handler, true);
 Timer hpma_timer(HPMA_TIMEOUT_MS, hpma_timeout_handler, true);
-Timer check_position_timer(GPS_MEASUREMENT_MS, check_position_timer_handler);
 
 // Watchdog
 ApplicationWatchdog wd(WATCHDOG_TIMEOUT_MS, System.reset);
@@ -101,6 +103,9 @@ static bool m_check_position = false;
 // Motion ticks
 static uint32_t m_motion_ticks = 0;
 static uint32_t m_alarm_ticks = 0;
+
+// GPS location count
+static uint32_t m_gps_check_ms = 0;
 
 // Locking serial to one driver at a time
 static serial_lock_t m_serial_lock;
@@ -151,11 +156,6 @@ void cellular_timer_handler() {
 // Definition of timer handler
 void measurement_timer_handler() {
   data_check = true;
-}
-
-// prompts the device to update the position every hour
-void check_position_timer_handler() {
-  m_check_position = true;
 }
 
 // This fires after the hpma should have finished...
@@ -374,7 +374,6 @@ void setup() {
 
   // Start the timer
   measurement_timer.start();
-  check_position_timer.start();
 
   // Set up cloud variable
   #if BACKEND_ID == BACKEND_PARTICLE
@@ -600,7 +599,7 @@ void loop() {
   }
 
   // Enable gps for a single reading
-  if( m_check_position && !data_check ) {
+  if( m_check_position && (m_serial_lock.owner == serial_lock_none)  ) {
     m_check_position = false;
 
     // Eanble gps
@@ -616,8 +615,18 @@ void loop() {
   // start taking measurements!
   if( data_check ) {
 
+    Serial.println("data check");
+
     // Set state variable to false
     data_check = false;
+
+    // Cacluate how many more data_check events before the GPS needs to be checked
+    m_gps_check_ms+=m_reading_period;
+    if( m_gps_check_ms > GPS_MEASUREMENT_MS ) {
+      Serial.println("get gps measurement");
+      m_check_position = true;
+      m_gps_check_ms = 0;
+    }
 
     // Set start of string.
     m_out = String("{");
@@ -657,8 +666,6 @@ void loop() {
       Serial.println("tvoc rdy");
     } else if( err_code == CCS811_NO_DAT_AVAIL ) {
       Serial.println("fatal tvoc error");
-      Serial.flush();
-      m_error_flag = true;
     } else {
       #if BACKEND_ID == BACKEND_PARTICLE
       Particle.publish("err", "tvoc" , PRIVATE, NO_ACK);
@@ -714,6 +721,7 @@ void loop() {
   // Process gps stuff
   gps.process();
 
+  // Process dust sensor
   hpma115.process();
 
   // Send updates/communicate with service when connected
