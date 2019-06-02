@@ -35,7 +35,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 #define SECOND_MS                      1000
 #define MINUTE_SEC                     60
 
-#define GPS_MEASUREMENT_MS             10 * MINUTE_SEC * SECOND_MS
+#define GPS_MEASUREMENT_MS             30 * MINUTE_SEC * SECOND_MS
 #define MEASUREMENT_DELAY_MS           5 * MINUTE_SEC * SECOND_MS
 #define MEASUREMENT_DELAY_ALERT_MS     MINUTE_SEC * SECOND_MS
 #define MIN_MEASUREMENT_DELAY_MS       10 * SECOND_MS
