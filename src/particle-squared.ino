@@ -439,7 +439,11 @@ void loop() {
 
   // If all the data is ready, send it as one data blob
   // only publish when connected...
+  #if PLATFORM_ID == PLATFORM_BORON
   if ( m_data_ready && Cellular.ready() ) {
+  #else
+  if ( m_data_ready && Particle.connected() ) {
+  #endif
     Serial.println("data send");
 
     // Cap off the JSON
