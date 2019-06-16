@@ -523,14 +523,16 @@ void loop() {
     // and evaluate using the scale from here:
     // https://en.wikipedia.org/wiki/Air_quality_index#Europe
     if( hpma115_data.pm25 > PM25_HAZARDOUS ) {
+      Serial.println("haz");
       RGB.color(255,0,0);
     } else if ( hpma115_data.pm25 > PM25_HIGH ) {
-      RGB.color(241,132,50);
+      Serial.println("high");
+      RGB.color(0xff,0x60,0);
     } else if ( hpma115_data.pm25 > PM25_MED ) {
-      RGB.color(233,194,67);
-    } else if ( hpma115_data.pm25 > PM25_LOW ) {
-      RGB.color(183,197,93);
+      Serial.println("med");
+      RGB.color(0xff,0xff,0);
     } else {
+      Serial.println("ok");
       RGB.color(0,255,0);
     }
 
