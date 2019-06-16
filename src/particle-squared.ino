@@ -250,6 +250,15 @@ void setup() {
 
   // Turn off the LED. This app controls the LED.
   RGB.control(true);
+  RGB.brightness(0xff);
+  RGB.color(0xff,0,0);
+  delay(500);
+  RGB.color(0xff,0x60,0);
+  delay(500);
+  RGB.color(0xff,0xff,0);
+  delay(500);
+  RGB.color(0,0xff,0);
+  delay(500);
   RGB.brightness(0);
 
   // Set up PC based UART (for debugging)
@@ -690,7 +699,11 @@ void loop() {
       int32_t long_min = gps_data.lon-(long_deg*10000000);
       const char * long_char = (gps_data.lon_c == 'W') ? "-" : "";
       const char * lat_char = (gps_data.lat_c == 'N') ? "" : "-";
+      #if BACKEND_ID == BACKEND_PARTICLE
+      m_out = String( m_out + String::format(",\"latitude\":\"%s%i.%i\",\"longitude\":\"%s%i.%i\"",lat_char,lat_deg,lat_min,long_char,long_deg,long_min) );
+      #else
       m_out = String( m_out + String::format(",\"lat\":\"%s%i.%i\",\"lng\":\"%s%i.%i\"",lat_char,lat_deg,lat_min,long_char,long_deg,long_min) );
+      #endif
       // Serial.printf("%i %i\n", lat_deg,long_deg);
       // Serial.printf("%i %i\n", lat_min,long_min);
       m_has_location = false;
