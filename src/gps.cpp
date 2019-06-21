@@ -2,6 +2,7 @@
 #include "application.h"
 
 #define GPSECHO false
+#define GPS_DEBUG true
 
 // Serial init
 Adafruit_GPS gps(&Serial1);
@@ -128,6 +129,35 @@ uint32_t GPS::process() {
       // Serial.println(gps.lastNMEA()); // this also sets the newNMEAreceived() flag to false
       if (!gps.parse(gps.lastNMEA())) // this also sets the newNMEAreceived() flag to false
         return GPS_SUCCESS; // we can fail to parse a sentence in which case we should just wait for another
+    }
+
+    // if millis() or timer wraps around, we'll just reset it
+    if (this->timer > millis()) this->timer = millis();
+
+    // approximately every 2 seconds or so, print out the current stats
+    if (millis() - this->timer > 2000 && GPS_DEBUG) {
+      this->timer = millis(); // reset the timer
+      Serial.print("\nTime: ");
+      Serial.print(gps.hour, DEC); Serial.print(':');
+      Serial.print(gps.minute, DEC); Serial.print(':');
+      Serial.print(gps.seconds, DEC); Serial.print('.');
+      Serial.println(gps.milliseconds);
+      Serial.print("Date: ");
+      Serial.print(gps.day, DEC); Serial.print('/');
+      Serial.print(gps.month, DEC); Serial.print("/20");
+      Serial.println(gps.year, DEC);
+      Serial.print("Fix: "); Serial.print((int)gps.fix);
+      Serial.print(" quality: "); Serial.println((int)gps.fixquality);
+      if (gps.fix) {
+        Serial.print("Location: ");
+        Serial.print(gps.latitude, 4); Serial.print(gps.lat);
+        Serial.print(", ");
+        Serial.print(gps.longitude, 4); Serial.println(gps.lon);
+        Serial.print("Speed (knots): "); Serial.println(gps.speed);
+        Serial.print("Angle: "); Serial.println(gps.angle);
+        Serial.print("Altitude: "); Serial.println(gps.altitude);
+        Serial.print("Satellites: "); Serial.println((int)gps.satellites);
+      }
     }
 
     // Once we get a fix, store the info and shutdown
