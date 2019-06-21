@@ -89,6 +89,9 @@ TCPClient client;
 // Fuel gauge output
 FuelGauge fuel;
 
+// PMIC
+PMIC pmic;
+
 // Event flags
 static bool data_check       = false;
 static bool m_pir_event      = false;
@@ -265,6 +268,9 @@ void setup() {
   Serial.blockOnOverrun(false);
   Serial.begin();
 
+  // Setup PMIC
+  pmic.begin();
+
   // Set up I2C
   Wire.setSpeed(I2C_CLK_SPEED);
   Wire.begin();
@@ -407,6 +413,18 @@ void setup() {
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
+
+  // loop and sleep if not connected to USB
+  while(!pmic.isPowerGood()){
+    RGB.brightness(0);
+
+    // Disable power hungary peripherals
+    gps.disable();
+    hpma115.disable();
+
+    // Beddy bye
+    System.sleep(1);
+  }
 
   uint32_t err_code;
 
