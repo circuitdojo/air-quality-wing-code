@@ -62,7 +62,8 @@ uint32_t HPMA115::enable(){
 uint32_t HPMA115::disable() {
 
   // Return busy error
-  if( this->serial_lock->owner != serial_lock_hpma ){
+  if( this->serial_lock->owner != serial_lock_hpma &&
+      this->serial_lock->owner != serial_lock_none ){
     return HPMA115_SERIAL_BUSY;
   }
 

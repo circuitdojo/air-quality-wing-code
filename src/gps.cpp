@@ -80,7 +80,8 @@ uint32_t GPS::get_fix() {
 uint32_t GPS::disable() {
 
   // Return if the serial is busy
-  if( this->serial_lock->owner != serial_lock_gps  ) {
+  if( this->serial_lock->owner != serial_lock_gps &&
+      this->serial_lock->owner != serial_lock_none  ) {
     return GPS_SERIAL_BUSY;
   }
 
