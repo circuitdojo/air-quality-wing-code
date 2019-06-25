@@ -16,6 +16,19 @@ Particle^2 (pronounced Particle Squared) is a circuit board that helps you monit
 6. Select `Compile application (local)`. You can also choose `Cloud flash` as long as `board.h` has not been modified.
 7. Enjoy playing around with your Particle Squared!
 
+## Getting the BSEC library included with this project
+
+If you're using the BME680 you'll have to include the static library provided by Bosch. [Download the goods here first.](https://www.bosch-sensortec.com/bst/products/all_products/bsec)
+
+For this project (on any Particle Mesh board) you will want the `libalgobsec.a` in `BSEC_1.4.7.3_Generic_Release/algo/bin/Lite_version/gcc/Cortex_M4F`
+
+Add these to the `makefile` in `.particle/toolchains/deviceOS/<version>/firmware-<version>/modules/xenon/user-part` for the Particle stuff to work.
+
+```
+LIB_DEPS += $(USER_LIB_DIR)/libalgobsec.a
+LDFLAGS += -Wl,--whole-archive $(USER_LIB_DIR)/libalgobsec.a -Wl,--no-whole-archive
+```
+
 ## Particle Basics
 
 #### ```/src``` folder:
