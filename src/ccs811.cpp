@@ -99,6 +99,23 @@ uint32_t CCS811::set_env(float temp, float hum) {
 
 }
 
+uint32_t CCS811::disable(void) {
+
+  uint32_t err_code;
+
+  // Set mode to 10 sec mode & enable int
+  Wire.beginTransmission(this->address);
+  Wire.write(CCS811_MEAS_MODE_REG); // sends register address
+  Wire.write(0);  // disable all
+  err_code = Wire.endTransmission();           // stop transaction
+  if( err_code != 0 ){
+    return err_code;
+  }
+
+  return CCS811_SUCCESS;
+
+}
+
 uint32_t CCS811::enable(void) {
 
   uint32_t err_code;

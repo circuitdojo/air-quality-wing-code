@@ -80,6 +80,7 @@ class CCS811 {
     CCS811(void);
     uint32_t setup(ccs811_init_t * init);
     uint32_t enable(void);
+    uint32_t disable(void);
     uint32_t set_env(float temp, float hum); //set the temp and humidity variables
     uint32_t read(ccs811_data_t * p_data);
     uint32_t save_baseline();
