@@ -19,12 +19,17 @@ SerialLogHandler logHandler(LOG_LEVEL_ERROR);
 
 #define BACKEND_PARTICLE 0
 #define BACKEND_SORACOM  1
+#define BACKEND_NONE     2
 
 #ifndef BACKEND_ID
-#define BACKEND_ID BACKEND_SORACOM
+#define BACKEND_ID BACKEND_NONE
 #endif
 
-#if PLATFORM_ID != PLATFORM_XENON
+#define NO_CONNECT true
+
+#if NO_CONNECT
+SYSTEM_MODE(MANUAL);
+#elif PLATFORM_ID != PLATFORM_XENON
 SYSTEM_MODE(SEMI_AUTOMATIC);
 #endif
 
@@ -88,9 +93,6 @@ TCPClient client;
 
 // Fuel gauge output
 FuelGauge fuel;
-
-// PMIC
-PMIC pmic;
 
 // Event flags
 static bool data_check       = false;
@@ -268,9 +270,6 @@ void setup() {
   Serial.blockOnOverrun(false);
   Serial.begin();
 
-  // Setup PMIC
-  pmic.begin();
-
   // Set up I2C
   Wire.setSpeed(I2C_CLK_SPEED);
   Wire.begin();
@@ -411,25 +410,46 @@ void setup() {
 
 }
 
+// Borrowed from NRF52 SDK to determine USB status
+static inline bool usbd_core_power_is_detected(void)
+{
+    return 0 != ( (NRF_POWER->USBREGSTATUS) & POWER_USBREGSTATUS_VBUSDETECT_Msk);
+}
+
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
 
   // loop and sleep if not connected to USB
-  while(!pmic.isPowerGood()){
-    RGB.brightness(0);
+  if( !usbd_core_power_is_detected() ) {
+    while(!usbd_core_power_is_detected()){
+      RGB.brightness(0);
 
-    // Disable power hungary peripherals
-    gps.disable();
-    hpma115.disable();
+      // Disconnect (if connected)
+      #if PLATFORM_ID == PLATFORM_XENON
+      Mesh.disconnect();
+      #endif
 
-    // Beddy bye
-    System.sleep(1);
+      // Disable power hungary peripherals
+      ccs811.disable();
+      gps.disable();
+      hpma115.disable();
+
+      // Beddy bye
+      System.sleep(10);
+
+      wd.checkin();
+    }
+
+    ccs811.enable();
+    gps.enable();
+
   }
 
   uint32_t err_code;
 
   // Connect if not connected..
-  #if PLATFORM_ID == PLATFORM_XENON
+  #if NO_CONNECT
+  #elif PLATFORM_ID == PLATFORM_XENON
   if (Mesh.ready() == false) {
     Serial.println("Not connected..");
     Mesh.connect();
@@ -491,6 +511,7 @@ void loop() {
     m_tcp_out = m_out;
     m_tcp_publish = true;
 
+    #elif BACKEND_ID == BACKEND_NONE
     #else
     #error BACKEND_ID needs to be defined.
     #endif
@@ -636,12 +657,12 @@ void loop() {
     m_check_position = false;
 
     // Eanble gps
-    err_code = gps.enable();
-    if( err_code != GPS_SUCCESS ) {
-      Serial.printf("gps enable err %d\n", err_code);
-      Serial.flush();
-      m_error_flag = true;
-    }
+    // err_code = gps.enable();
+    // if( err_code != GPS_SUCCESS ) {
+    //   Serial.printf("gps enable err %d\n", err_code);
+    //   Serial.flush();
+    //   m_error_flag = true;
+    // }
   }
 
   // If we're greater than or equal to the measurement delay
