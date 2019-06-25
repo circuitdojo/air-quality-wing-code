@@ -657,12 +657,12 @@ void loop() {
     m_check_position = false;
 
     // Eanble gps
-    // err_code = gps.enable();
-    // if( err_code != GPS_SUCCESS ) {
-    //   Serial.printf("gps enable err %d\n", err_code);
-    //   Serial.flush();
-    //   m_error_flag = true;
-    // }
+    err_code = gps.enable();
+    if( err_code != GPS_SUCCESS ) {
+      Serial.printf("gps enable err %d\n", err_code);
+      Serial.flush();
+      m_error_flag = true;
+    }
   }
 
   // If we're greater than or equal to the measurement delay
