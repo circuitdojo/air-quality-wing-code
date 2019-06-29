@@ -9,3 +9,5 @@ particle-squared.cpp
 *.dfu
 *.o
 *.d
+
+.vscode
