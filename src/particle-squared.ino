@@ -346,6 +346,9 @@ void setup() {
   // Set up keep alive
   Particle.keepAlive(60);
 
+  // Startup message
+  Serial.println("Particle Squared");
+
 }
 
 // loop() runs over and over again, as quickly as it can execute.
