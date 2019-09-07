@@ -102,15 +102,21 @@ static bool m_data_ready     = false;
 static bool m_led_motion_on  = false;
 static bool m_has_location   = false;
 static bool m_disconnect     = false;
+#if BACKEND_ID == BACKEND_SORACOM
 static bool m_tcp_publish    = false;
+#endif
+#ifdef GPS_ENABLED
 static bool m_check_position = false;
+#endif
 
 // Motion ticks
 static uint32_t m_motion_ticks = 0;
 static uint32_t m_alarm_ticks = 0;
 
 // GPS location count
+#ifdef GPS_ENABLED
 static uint32_t m_gps_check_ms = 0;
+#endif
 
 // Locking serial to one driver at a time
 static serial_lock_t m_serial_lock;
@@ -359,6 +365,7 @@ void setup() {
   }
   #endif
 
+  #ifdef GPS_ENABLED
   // Set up GPS
   gps_init_t gps_init = {
     .enable_pin = GPS_EN_PIN,
@@ -380,6 +387,7 @@ void setup() {
     Serial.flush();
     m_error_flag = true;
   }
+  #endif
 
   // Set up PIR interrupt
   pinMode(PIR_INT_PIN, INPUT_PULLDOWN);
@@ -652,6 +660,7 @@ void loop() {
     }
   }
 
+  #ifdef GPS_ENABLED
   // Enable gps for a single reading
   if( m_check_position && (m_serial_lock.owner == serial_lock_none)  ) {
     m_check_position = false;
@@ -664,6 +673,7 @@ void loop() {
       m_error_flag = true;
     }
   }
+  #endif
 
   // If we're greater than or equal to the measurement delay
   // start taking measurements!
@@ -674,6 +684,7 @@ void loop() {
     // Set state variable to false
     data_check = false;
 
+    #ifdef GPS_ENABLED
     // Cacluate how many more data_check events before the GPS needs to be checked
     m_gps_check_ms+=m_reading_period;
     if( m_gps_check_ms > GPS_MEASUREMENT_MS ) {
@@ -681,6 +692,7 @@ void loop() {
       m_check_position = true;
       m_gps_check_ms = 0;
     }
+    #endif
 
     // Set start of string.
     m_out = String("{");
@@ -731,6 +743,7 @@ void loop() {
     // Add battery info
     m_out = String( m_out + String::format(",\"batt\":%f", fuel.getSoC()) );
 
+    #ifdef GPS_ENABLED
     // Publish location
     if ( m_has_location ) {
       Serial.println("has location");
@@ -749,6 +762,7 @@ void loop() {
       // Serial.printf("%i %i\n", lat_min,long_min);
       m_has_location = false;
     }
+    #endif
 
     // Process PM2.5 and PM10 results
     // This is slightly different from the other readings
@@ -777,7 +791,9 @@ void loop() {
   }
 
   // Process gps stuff
+  #ifdef GPS_ENABLED
   gps.process();
+  #endif
 
   // Process dust sensor
   hpma115.process();
