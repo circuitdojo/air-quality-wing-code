@@ -22,10 +22,12 @@ SerialLogHandler logHandler(LOG_LEVEL_ERROR);
 #define BACKEND_NONE     2
 
 #ifndef BACKEND_ID
-#define BACKEND_ID BACKEND_NONE
+#define BACKEND_ID BACKEND_PARTICLE
 #endif
 
-#define NO_CONNECT true
+// #define GPS_ENABLED
+
+#define NO_CONNECT false
 
 #if NO_CONNECT
 SYSTEM_MODE(MANUAL);
@@ -365,7 +367,7 @@ void setup() {
   }
   #endif
 
-  #ifdef GPS_ENABLED
+
   // Set up GPS
   gps_init_t gps_init = {
     .enable_pin = GPS_EN_PIN,
@@ -380,14 +382,19 @@ void setup() {
     m_error_flag = true;
   }
 
+
+
+  #ifdef GPS_ENABLED
   // Enable the gps
   err_code = gps.enable();
+  #else
+  err_code = gps.disable();
+  #endif
   if( err_code != GPS_SUCCESS ) {
-    Serial.printf("gps enable err %d\n", err_code);
+    Serial.printf("gps setup err %d\n", err_code);
     Serial.flush();
     m_error_flag = true;
   }
-  #endif
 
   // Set up PIR interrupt
   pinMode(PIR_INT_PIN, INPUT_PULLDOWN);
