@@ -22,6 +22,8 @@ If you're using the BME680 you'll have to include the static library provided by
 
 For this project (on any Particle Mesh board) you will want the `libalgobsec.a` in `BSEC_1.4.7.3_Generic_Release/algo/bin/Lite_version/gcc/Cortex_M4F`
 
+Place `libalgobsec.a` in `.particle/toolchains/deviceOS/<verison>/firmware-<verison>/build/target/user/platform-12-m/pm25`. Depending on the platform you may have to change `platform-12-m/` to `platform-14-m` etc.
+
 Add these to the `makefile` in `.particle/toolchains/deviceOS/<version>/firmware-<version>/modules/xenon/user-part` for the Particle stuff to work.
 
 ```
