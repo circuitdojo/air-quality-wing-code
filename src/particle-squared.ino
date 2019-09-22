@@ -104,6 +104,7 @@ static bool m_data_ready     = false;
 static bool m_led_motion_on  = false;
 static bool m_has_location   = false;
 static bool m_disconnect     = false;
+static bool m_silenced       = false;
 #if BACKEND_ID == BACKEND_SORACOM
 static bool m_tcp_publish    = false;
 #endif
@@ -215,6 +216,20 @@ void hpma_evt_handler(hpma115_data_t *p_data) {
   m_data_ready = true;
 
   Serial.println("hpma rdy");
+}
+
+int silence( String data ) {
+
+  uint32_t is_silenced = data.toInt();
+
+  if( is_silenced ) {
+    m_silenced = true;
+  } else {
+    m_silenced = false;
+  }
+
+  return 1;
+
 }
 
 int set_reading_period( String period ) {
@@ -407,6 +422,7 @@ void setup() {
   // Set up cloud variable
   #if BACKEND_ID == BACKEND_PARTICLE
   Particle.function("set_period", set_reading_period);
+  Particle.function("silence", silence);
 
   // Set up keep alive
   Particle.keepAlive(60);
@@ -640,7 +656,7 @@ void loop() {
   }
 
   // Set audible alarm
-  if ( hpma115_data.pm25 > PM25_HIGH ) {
+  if ( hpma115_data.pm25 > PM25_HIGH && !m_silenced ) {
 
     // Check reading every minute
     if( m_reading_period != MEASUREMENT_DELAY_ALERT_MS ) {
