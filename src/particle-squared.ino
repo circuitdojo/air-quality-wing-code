@@ -42,6 +42,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 #define SECOND_MS                      1000
 #define MINUTE_SEC                     60
 
+#define MOTION_UPDATE_INTERVAL_MS      2 * MINUTE_SEC * SECOND_MS
 #define GPS_MEASUREMENT_MS             30 * MINUTE_SEC * SECOND_MS
 #define MEASUREMENT_DELAY_MS           5 * MINUTE_SEC * SECOND_MS
 #define MEASUREMENT_DELAY_ALERT_MS     MINUTE_SEC * SECOND_MS
@@ -57,6 +58,8 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 
 #define LED_ON_INTERVAL 10000
 #define ALERT_INTERVAL 60000
+
+#define DEVICE_LOCATION "front door"
 
 // Timer handler
 void measurement_timer_handler();
@@ -99,6 +102,7 @@ FuelGauge fuel;
 // Event flags
 static bool data_check       = false;
 static bool m_pir_event      = false;
+static bool m_motion_event   = false;
 static bool m_error_flag     = false;
 static bool m_data_ready     = false;
 static bool m_led_motion_on  = false;
@@ -114,6 +118,7 @@ static bool m_check_position = false;
 
 // Motion ticks
 static uint32_t m_motion_ticks = 0;
+static uint32_t m_motion_update_ticks = 0;
 static uint32_t m_alarm_ticks = 0;
 
 // GPS location count
@@ -254,6 +259,15 @@ int set_reading_period( String period ) {
 // Event for recieving motion alerts
 void pir_event_handler(void) {
   m_pir_event = true;
+
+  if( m_motion_update_ticks > millis() ) {
+    m_motion_update_ticks = millis();
+  }
+
+  if( millis() > m_motion_update_ticks + MOTION_UPDATE_INTERVAL_MS) {
+    m_motion_update_ticks = millis();
+    m_motion_event = true;
+  }
 }
 
 // Event handler for GPS
@@ -584,6 +598,15 @@ void loop() {
   }
   #endif
 
+  if( m_motion_event ) {
+    m_motion_event = false;
+
+    char msg[120];
+    sprintf(msg,"{\"location\":\"%s\"}",DEVICE_LOCATION);
+    Particle.publish("motion", msg, PRIVATE | WITH_ACK);
+
+  }
+
   // If there is a PIR event handle that here
   if( m_pir_event && !m_led_motion_on ) {
 
@@ -623,7 +646,6 @@ void loop() {
     m_led_motion_on = true;
 
     // TODO: define action here (start taking measurements
-
   }
 
   // Handle if the LED is turned on
