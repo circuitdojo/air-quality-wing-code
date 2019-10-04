@@ -3,6 +3,6 @@
     "files.associations": {
         "*.ino": "cpp"
     },
-    "particle.targetPlatform": "argon",
-    "particle.firmwareVersion": "0.9.0",
+    "particle.targetPlatform": "xenon",
+    "particle.firmwareVersion": "1.4.0",
 }
