@@ -42,6 +42,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 #define SECOND_MS                      1000
 #define MINUTE_SEC                     60
 
+#define MOTION_NOT_OCCUPIED_MS         4 * MINUTE_SEC * SECOND_MS
 #define MOTION_UPDATE_INTERVAL_MS      2 * MINUTE_SEC * SECOND_MS
 #define GPS_MEASUREMENT_MS             30 * MINUTE_SEC * SECOND_MS
 #define MEASUREMENT_DELAY_MS           5 * MINUTE_SEC * SECOND_MS
@@ -100,6 +101,7 @@ TCPClient client;
 FuelGauge fuel;
 
 // Event flags
+static bool m_occupied       = false;
 static bool data_check       = false;
 static bool m_pir_event      = false;
 static bool m_motion_event   = false;
@@ -118,7 +120,7 @@ static bool m_check_position = false;
 
 // Motion ticks
 static uint32_t m_motion_ticks = 0;
-static uint32_t m_motion_update_ticks = 0;
+static uint32_t m_last_motion_ticks = 0;
 static uint32_t m_alarm_ticks = 0;
 
 // GPS location count
@@ -260,13 +262,14 @@ int set_reading_period( String period ) {
 void pir_event_handler(void) {
   m_pir_event = true;
 
-  if( m_motion_update_ticks > millis() ) {
-    m_motion_update_ticks = millis();
+  if( m_last_motion_ticks > millis() ) {
+    m_last_motion_ticks = millis();
   }
 
-  if( millis() > m_motion_update_ticks + MOTION_UPDATE_INTERVAL_MS) {
-    m_motion_update_ticks = millis();
+  if( (millis() > m_last_motion_ticks + MOTION_UPDATE_INTERVAL_MS ) && !m_occupied) {
+    m_last_motion_ticks = millis();
     m_motion_event = true;
+    m_occupied = true;
   }
 }
 
@@ -602,8 +605,8 @@ void loop() {
     m_motion_event = false;
 
     char msg[120];
-    sprintf(msg,"{\"location\":\"%s\"}",DEVICE_LOCATION);
-    Particle.publish("motion", msg, PRIVATE | WITH_ACK);
+    sprintf(msg,"{\"value\":\"true\",\"location\":\"%s\"}",DEVICE_LOCATION);
+    Particle.publish("occupied", msg, PRIVATE | WITH_ACK);
 
   }
 
@@ -646,6 +649,15 @@ void loop() {
     m_led_motion_on = true;
 
     // TODO: define action here (start taking measurements
+  }
+
+  if( m_occupied && (millis() > m_last_motion_ticks + MOTION_NOT_OCCUPIED_MS) ) {
+    m_occupied = false;
+
+    char msg[120];
+    sprintf(msg,"{\"value\":\"false\",\"location\":\"%s\"}",DEVICE_LOCATION);
+    Particle.publish("occupied", msg, PRIVATE | WITH_ACK);
+
   }
 
   // Handle if the LED is turned on
