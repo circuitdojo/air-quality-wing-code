@@ -1,4 +1,4 @@
-# Air Quality Wing for Particle Mesh - PM2.5 PM10 eC02 TVOC Humidity and Temperature
+# Air Quality Wing for Particle Mesh Code!
 
 ![Render](images/render.png)
 
