@@ -1,20 +1,20 @@
-# Particle Squared
+# Air Quality Wing for Particle Mesh - PM2.5 PM10 eC02 TVOC Humidity and Temperature
 
 ![Render](images/render.png)
 
-Particle^2 (pronounced Particle Squared) is a circuit board that helps you monitor the air quality around you. This repository is the code for Particle^2 which enables you to monitor humidity, temperature, air particulates, eC02 and TVOCs in one small package. You can use it with an Adafruit Feather compatible board or the newest mesh enabled boards from Particle. [For more information click here.](https://www.jaredwolff.com/particle-squared-air-quality-sensor/)
+The Air Quality Wing for Particle Mesh (Previously Particle Squared) is a circuit board that helps you monitor the air quality around you. This repository is the code for the Air Quality Wing which enables you to monitor humidity, temperature, air particulates, eC02 and TVOCs in one small package. You can use it with an Adafruit Feather compatible board or the newest mesh enabled boards from Particle. [For more information click here.](https://www.jaredwolff.com/particle-squared-air-quality-sensor/)
 
-[To get yours go here.](https://www.jaredwolff.com/store/particle-squared/)
+[To get yours go here.](https://www.jaredwolff.com/store/air-quality-wing/)
 
 ## Quick Start:
 
-1. Clone this repo onto a place on your machine: `git clone git@bitbucket.org:circuitdojo/particle-squared-code.git`
+1. Clone this repo onto a place on your machine: `git clone git@github.com:jaredwolff/air-quality-wing-code.git`
 2. Open the repo with Visual Code: (`code .` using the command line, or `file`->`open`)
 3. Open `/src/particle-squared.ino`
 4. Select your target device in the lower bar (Options are `xenon`, `argon`, `boron`)
 5. Hit `cmd` + `shift` + `p` to get the command menu
 6. Select `Compile application (local)`. You can also choose `Cloud flash` as long as `board.h` has not been modified.
-7. Enjoy playing around with your Particle Squared!
+7. Enjoy playing around with your Air Quality Wing!
 
 ## Getting the BSEC library included with this project
 
