@@ -37,7 +37,7 @@ typedef struct {
   uint16_t pm10;
 } hpma115_data_t;
 
-typedef void (*hpma115_cb)(hpma115_data_t * p_data);
+typedef std::function<void(void)> hpma115_cb;
 
 typedef struct {
   hpma115_cb callback;
@@ -52,7 +52,7 @@ class HPMA115 {
     uint32_t disable();
     bool is_enabled();
     void process();
-    void int_handler(void);
+    hpma115_data_t getData();
   protected:
     hpma115_cb callback;
     hpma115_data_t data;

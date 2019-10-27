@@ -25,12 +25,11 @@ uint32_t CCS811::setup( ccs811_init_t * p_init ) {
   this->int_pin       = p_init->int_pin;
   this->address       = p_init->address;
   this->rst_pin       = p_init->rst_pin;
-  this->pin_interrupt = p_init->pin_interrupt;
   this->wake_pin      = p_init->wake_pin;
 
   // Configure the pin interrupt
   pinMode(this->int_pin, INPUT);
-  attachInterrupt(this->int_pin, this->pin_interrupt, FALLING);
+  attachInterrupt(this->int_pin, &CCS811::int_handler, this, FALLING);
 
   // Wake it up
   pinMode(this->wake_pin, OUTPUT);

@@ -8,13 +8,8 @@
 
 // Default version to 2
 #ifndef HW_VERSION
-#define HW_VERSION HW_VER2
+#define HW_VERSION HW_VER3
 #endif
-
-#define HAS_HPMA
-// #define HAS_SGP30
-// #define HAS_BME680
-#define HAS_CCS811
 
 #define I2C_SDA_PIN     D0
 #define I2C_SCL_PIN     D1

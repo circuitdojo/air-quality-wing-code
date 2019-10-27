@@ -57,7 +57,6 @@ typedef struct {
 
 typedef struct {
   uint8_t address;
-  raw_interrupt_handler_t pin_interrupt;
   uint8_t int_pin;
   uint8_t rst_pin;
   uint8_t wake_pin;
@@ -89,7 +88,6 @@ class CCS811 {
     void int_handler(void);
   protected:
     uint8_t address;
-    raw_interrupt_handler_t pin_interrupt;
     uint8_t int_pin;
     uint8_t rst_pin;
     uint8_t wake_pin;

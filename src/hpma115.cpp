@@ -54,15 +54,6 @@ uint32_t HPMA115::disable() {
   return HPMA115_SUCCESS;
 }
 
-void HPMA115::int_handler() {
-
-  // If we are ready, change state
-  if ( this->state == READY ) {
-    this->state = DATA_AVAILABLE;
-  }
-
-}
-
 bool HPMA115::is_enabled() {
 
   // If we are ready, change state
@@ -75,6 +66,10 @@ bool HPMA115::is_enabled() {
 }
 
 void HPMA115::process() {
+
+    if( this->state == READY && Serial1.available() ) {
+      this->state = DATA_AVAILABLE;
+    }
 
     // First read
     if( this->state == DATA_AVAILABLE && Serial1.available() >= 2 ) {
@@ -102,6 +97,7 @@ void HPMA115::process() {
 
     // Read remaining bytes
     if( this->state == DATA_READ && Serial1.available() >= 30) {
+
       // Then read
       Serial1.readBytes(this->rx_buf+2,30);
 
@@ -153,10 +149,16 @@ void HPMA115::process() {
       this->data.pm10 = (this->rx_buf[8] << 8) + this->rx_buf[9];
 
       // Callback
-      this->callback(&this->data);
+      this->callback();
 
       // State is back to ready
       this->state = READY;
 
     }
 }
+
+// Return copy of data
+hpma115_data_t HPMA115::getData() {
+  return this->data;
+}
+
