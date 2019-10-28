@@ -25,7 +25,7 @@ typedef enum {
   hpma115_error,
   ccs811_error,
   si7021_error
-} AirQualityError_t;
+} AirQualityWingError_t;
 
 // Structure for holding data.
 typedef struct {
@@ -41,7 +41,7 @@ typedef struct {
     bool hasData;
     hpma115_data_t data;
   } hpma115;
-} AirQualityData_t;
+} AirQualityWingData_t;
 
 typedef struct {
   uint32_t interval;
@@ -53,18 +53,18 @@ typedef struct {
   uint8_t ccs811RstPin;
   uint8_t ccs811WakePin;
   uint8_t hpma115IntPin;
-} AirQualitySettings_t;
+} AirQualityWingSettings_t;
 
 // Handler defintion
-typedef std::function<void()> AirQualityHandler_t;
+typedef std::function<void()> AirQualityWingHandler_t;
 
 // Air quality class. Only create one of these!
-class AirQuality
+class AirQualityWing
 {
 private:
   // Private data used to store latest values
-  AirQualityHandler_t handler_;
-  AirQualitySettings_t settings_;
+  AirQualityWingHandler_t handler_;
+  AirQualityWingSettings_t settings_;
 
   // Sensor objects
   Si7021  si7021;
@@ -98,7 +98,7 @@ private:
   bool hpmaError;
 
   // Data
-  AirQualityData_t data;
+  AirQualityWingData_t data;
 
   // #ifdef HAS_SGP30
   // Timer sgp30_timer(SGP30_READ_INTERVAL, sgp30_timer_handler);
@@ -106,13 +106,13 @@ private:
 public:
 
   // Using defaults
-  AirQuality();
+  AirQualityWing();
 
   // Inits the devices
-  AirQualityError_t setup(AirQualityHandler_t handler, AirQualitySettings_t settings);
+  AirQualityWingError_t setup(AirQualityWingHandler_t handler, AirQualityWingSettings_t settings);
 
   // Begins data collection
-  AirQualityError_t begin();
+  AirQualityWingError_t begin();
 
   // Stops data collection, de-inits
   void end();
@@ -121,16 +121,16 @@ public:
   String toString();
 
   // Returns a copy of the full data structure
-  AirQualityData_t getData();
+  AirQualityWingData_t getData();
 
   // Attaches event handler. Event handler fires when a round of data has completed successfully
-  void attachHandler(AirQualityHandler_t handler);
+  void attachHandler(AirQualityWingHandler_t handler);
 
   // Deattaches event handler. The only way to fetch new data is using the `data()` method
   void deattachHandler();
 
   // Process method is required to process data correctly. Place in `loop()` function
-  AirQualityError_t process();
+  AirQualityWingError_t process();
 
   // Set measurement interval.
   // Accepts intervals from 20 seconds

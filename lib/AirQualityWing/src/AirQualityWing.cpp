@@ -1,20 +1,20 @@
-#include "AirQuality.h"
+#include "AirQualityWing.h"
 
 // Firmware update
 #include "CCS811_FW_App_v2_0_1.h"
 
 // Constructor
-AirQuality::AirQuality() {}
+AirQualityWing::AirQualityWing() {}
 
 // This fires after the hpma should have finished...
-void AirQuality::hpmaTimerEvent() {
+void AirQualityWing::hpmaTimerEvent() {
   // Set ready flag if we time out
   this->measurementComplete = true;
   this->hpmaError = true;
 }
 
 // Async publish event
-void AirQuality::hpmaEvent() {
+void AirQualityWing::hpmaEvent() {
 
   this->hpmaMeasurementComplete = true;
 
@@ -76,11 +76,11 @@ void AirQuality::hpmaEvent() {
 // #endif
 
 // Measurement timer handler
-void AirQuality::measureTimerEvent() {
+void AirQualityWing::measureTimerEvent() {
   this->measurementStart = true;
 }
 
-AirQualityError_t AirQuality::setup(AirQualityHandler_t handler, AirQualitySettings_t settings)
+AirQualityWingError_t AirQualityWing::setup(AirQualityWingHandler_t handler, AirQualityWingSettings_t settings)
 {
 
   uint32_t err_code = success;
@@ -208,7 +208,7 @@ AirQualityError_t AirQuality::setup(AirQualityHandler_t handler, AirQualitySetti
   return success;
 }
 
-AirQualityError_t AirQuality::begin() {
+AirQualityWingError_t AirQualityWing::begin() {
 
   uint32_t err_code = success;
 
@@ -231,11 +231,11 @@ AirQualityError_t AirQuality::begin() {
   return success;
 }
 
-void AirQuality::end() {
+void AirQualityWing::end() {
 
 }
 
-String AirQuality::toString() {
+String AirQualityWing::toString() {
 
   String out = "{";
 
@@ -272,19 +272,19 @@ String AirQuality::toString() {
 
 }
 
-AirQualityData_t AirQuality::getData() {
+AirQualityWingData_t AirQualityWing::getData() {
   return this->data;
 }
 
-void AirQuality::attachHandler( AirQualityHandler_t handler ) {
+void AirQualityWing::attachHandler( AirQualityWingHandler_t handler ) {
   this->handler_ = handler;
 }
 
-void AirQuality::deattachHandler() {
+void AirQualityWing::deattachHandler() {
   this->handler_ = nullptr;
 }
 
-AirQualityError_t AirQuality::process() {
+AirQualityWingError_t AirQualityWing::process() {
 
   uint32_t err_code = success;
 
@@ -478,7 +478,7 @@ AirQualityError_t AirQuality::process() {
 
 }
 
-void AirQuality::setInterval(uint32_t interval) {
+void AirQualityWing::setInterval(uint32_t interval) {
 
   if( interval >= MIN_MEASUREMENT_DELAY_MS ) {
 

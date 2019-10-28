@@ -1,28 +1,38 @@
+/******************************************************/
+//       THIS IS A GENERATED FILE - DO NOT EDIT       //
+/******************************************************/
+
+#include "application.h"
+#line 1 "/Users/jaredwolff/Circuit_Dojo/pm25/src/AirQualityWing.ino"
 /*
- * Project Particle Squared
- * Description: Particle powered PM2.5 and air quality sensor
- * Author: Jared Wolff
- * Date: 2/26/2019
+ * Project Air Quality Wing Library Example
+ * Description: Basic example using the Air Quality Wing for Particle Mesh
+ * Author: Jared Wolff (Circuit Dojo LLC)
+ * Date: 10/27/2019
  * License: GNU GPLv3
  */
 
-#include "AirQuality.h"
+#include "AirQualityWing.h"
 #include "board.h"
 
 // Logger
+int set_interval( String period );
+void setup();
+void loop();
+#line 13 "/Users/jaredwolff/Circuit_Dojo/pm25/src/AirQualityWing.ino"
 SerialLogHandler logHandler(115200, LOG_LEVEL_ERROR, {
-    { "app", LOG_LEVEL_TRACE }, // enable all app messages
+    { "app", LOG_LEVEL_WARN }, // enable all app messages
 });
 
 // Forward declaration of event handler
-void AirQualityEvent();
+void AirQualityWingEvent();
 
-// AirQuality object
-AirQuality AirQual = AirQuality();
+// AirQualityWing object
+AirQualityWing AirQual = AirQualityWing();
 
 // Handler is called in main loop.
 // Ok to run Particle.Publish
-void AirQualityEvent() {
+void AirQualityWingEvent() {
 
   Log.trace("pub");
 
@@ -57,8 +67,8 @@ void setup() {
   Wire.begin();
 
   // Default settings
-  AirQualitySettings_t defaultSettings =
-  { 20000, //Measurement Interval
+  AirQualityWingSettings_t defaultSettings =
+  { MEASUREMENT_DELAY_MS, //Measurement Interval
     true,                 //Has HPMA115
     true,                 //Has CCS811
     true,                 //Has Si7021
@@ -70,7 +80,7 @@ void setup() {
   };
 
   // Setup & Begin Air Quality
-  AirQual.setup(AirQualityEvent, defaultSettings);
+  AirQual.setup(AirQualityWingEvent, defaultSettings);
   AirQual.begin();
 
   // Set up cloud variable
