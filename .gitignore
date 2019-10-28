@@ -4,7 +4,7 @@
 *.lst
 *.map
 *.bin*
-AirQuality.cpp
+AirQualityWing.cpp
 *.ipch
 *.dfu
 *.o
