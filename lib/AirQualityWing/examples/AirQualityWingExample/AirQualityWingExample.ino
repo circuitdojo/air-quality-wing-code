@@ -76,9 +76,6 @@ void setup() {
   // Set up cloud variable
   Particle.function("set_interval", set_interval);
 
-  // Set up keep alive
-  Particle.keepAlive(60);
-
   // Startup message
   Serial.println("Air Quality Wing for Particle Mesh");
 

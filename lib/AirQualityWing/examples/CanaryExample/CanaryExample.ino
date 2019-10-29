@@ -116,9 +116,6 @@ void setup() {
   Particle.function("set_interval", set_interval);
   Particle.function("silence", silence);
 
-  // Set up keep alive
-  Particle.keepAlive(60);
-
   // Startup message
   Serial.println("Air Quality Wing for Particle Mesh");
 

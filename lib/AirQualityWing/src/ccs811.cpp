@@ -143,7 +143,7 @@ uint32_t CCS811::save_baseline() {
   // Write to the address
   EEPROM.put(CCS811_BASELINE_ADDR, baseline);
 
-  return NRF_SUCCESS;
+  return CCS811_SUCCESS;
 }
 
 uint32_t CCS811::restore_baseline() {
@@ -156,7 +156,7 @@ uint32_t CCS811::restore_baseline() {
 
   // If it's uninitialized, return invalid data
   if ( baseline[0] == 0xff && baseline[1] == 0xff) {
-    return NRF_ERROR_INVALID_DATA;
+    return CCS811_DAT_INVALID;
   }
 
   // Write to the chip
@@ -169,7 +169,7 @@ uint32_t CCS811::restore_baseline() {
     return err_code;
   }
 
-  return NRF_SUCCESS;
+  return CCS811_SUCCESS;
 }
 
 uint32_t CCS811::read(ccs811_data_t * p_data) {

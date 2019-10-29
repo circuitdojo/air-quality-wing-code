@@ -4,7 +4,7 @@
 
 The Air Quality Wing for Particle Mesh (Previously Particle Squared) is a circuit board that helps you monitor the air quality around you. This repository is the code for the Air Quality Wing which enables you to monitor humidity, temperature, air particulates, eC02 and TVOCs in one small package.
 
-You can use it with an Adafruit Feather compatible board or the newest mesh enabled boards from Particle. [For more information click here.](https://www.jaredwolff.com/particle-squared-air-quality-sensor/)
+You can use it with an Adafruit Feather compatible board or the newest mesh enabled boards from Particle. [For more information click here.](https://www.jaredwolff.com/particle-squared-air-quality-sensor/) If you want to use this library with other Particle boards, you'll have to modify `board.h` to suit your needs.
 
 [To get yours go here.](https://www.jaredwolff.com/store/air-quality-wing/)
 
@@ -93,9 +93,6 @@ void setup() {
   // Set up cloud variable
   Particle.function("set_interval", set_interval);
 
-  // Set up keep alive
-  Particle.keepAlive(60);
-
   // Startup message
   Serial.println("Air Quality Wing for Particle Mesh");
 
@@ -132,6 +129,12 @@ There's also an example for the [Canary](https://www.hackster.io/jaredwolff/the-
 
 ```
 particle compile xenon examples/CanaryExample/ src/
+```
+
+Then you can flash the file via the Particle cloud
+
+```
+particle flash <device name> xenon_firmware_12345.bin
 ```
 
 ## Documentation

@@ -74,7 +74,7 @@ uint32_t SGP30::save_baseline() {
   // Write to the address
   EEPROM.put(SGP30_BASELINE_ADDR, baseline);
 
-  return NRF_SUCCESS;
+  return SGP30_SUCCESS;
 }
 
 uint32_t SGP30::restore_baseline() {
