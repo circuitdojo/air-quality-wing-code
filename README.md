@@ -6,7 +6,7 @@ The Air Quality Wing for Particle Mesh (Previously Particle Squared) is a circui
 
 [To get yours go here.](https://www.jaredwolff.com/store/air-quality-wing/)
 
-*Update 10/27/2019:* This example now uses the Air Quality Wing Library! Search for `AirQualityWing` in ParticleWorkbench to install. Have fun!
+*Update 10/27/2019:* This example now uses the Air Quality Wing Library! Search for `AirQualityWing` in ParticleWorkbench to install. It's also available on [Github](https://github.com/jaredwolff/air-quality-wing-library). Have fun!
 
 ## Quick Start:
 
