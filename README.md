@@ -12,7 +12,7 @@ The Air Quality Wing for Particle Mesh (Previously Particle Squared) is a circui
 
 1. Clone this repo onto a place on your machine: `git clone git@github.com:jaredwolff/air-quality-wing-code.git`
 2. Open the repo with Visual Code: (`code .` using the command line, or `file`->`open`)
-3. Open `/src/particle-squared.ino`
+3. Open `/src/AirQualityWing.ino`
 4. Select your target device in the lower bar (Options are `xenon`, `argon`, `boron`)
 5. Hit `cmd` + `shift` + `p` to get the command menu
 6. Select `Compile application (local)`. You can also choose `Cloud flash` as long as `board.h` has not been modified.
