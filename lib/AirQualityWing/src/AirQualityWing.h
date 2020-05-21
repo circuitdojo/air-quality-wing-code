@@ -11,49 +11,60 @@
 #include "ccs811.h"
 #include "hpma115.h"
 #include "stdbool.h"
-
-// #ifdef HAS_SGP30
-// #include "sgp30.h"
-// #endif
+#include "sgp30.h"
 
 // #ifdef HAS_BME680
 // #include "bsec.h"
 // #endif
 
 // Delay and timing related contsants
-#define MEASUREMENT_DELAY_S 120
+#define MEASUREMENT_DELAY_S 20
 #define MEASUREMENT_DELAY_MS (MEASUREMENT_DELAY_S * 1000)
 #define MIN_MEASUREMENT_DELAY_MS 10000
 #define HPMA_TIMEOUT_MS 10000
+#define UNUSED_PIN 255
 
-typedef enum {
+typedef enum
+{
   success = 0,
   hpma115_error,
   ccs811_error,
-  si7021_error
+  si7021_error,
+  sgp30_error
 } AirQualityWingError_t;
 
 // Structure for holding data.
-typedef struct {
-  struct {
+typedef struct
+{
+  struct
+  {
     bool hasData;
     ccs811_data_t data;
   } ccs811;
-  struct {
+  struct
+  {
     bool hasData;
     si7021_data_t data;
   } si7021;
-  struct {
+  struct
+  {
+    bool hasData;
+    sgp30_data_t data;
+  } sgp30;
+  struct
+  {
     bool hasData;
     hpma115_data_t data;
   } hpma115;
 } AirQualityWingData_t;
 
-typedef struct {
+typedef struct
+{
   uint32_t interval;
   bool hasHPMA115;
   bool hasCCS811;
   bool hasSi7021;
+  bool hasSGP30;
   uint8_t ccs811Address;
   uint8_t ccs811IntPin;
   uint8_t ccs811RstPin;
@@ -73,29 +84,30 @@ private:
   AirQualityWingSettings_t settings_;
 
   // Sensor objects
-  Si7021  si7021;
-  CCS811  ccs811;
+  Si7021 si7021;
+  CCS811 ccs811;
   HPMA115 hpma115;
+  SGP30 sgp30;
 
   void ccs811Event();
-
-  // #ifdef HAS_SGP30
-  // static SGP30   sgp30 = SGP30();
-  // #endif
 
   // #ifdef HAS_BME680
   // static Bsec    bsec = Bsec();
   // #endif
 
   // Variables
-  // TODO: init these guys
   Timer *measurementTimer;
   Timer *hpmaTimer;
+  Timer *sgpTimer;
 
   // Static measurement timer event function
   void hpmaEvent();
   void measureTimerEvent();
   void hpmaTimerEvent();
+  void sgp30TimerEvent();
+
+  // State of baseline
+  uint32_t periodCounter = 0;
 
   // Static var
   bool measurementStart;
@@ -106,11 +118,7 @@ private:
   // Data
   AirQualityWingData_t data;
 
-  // #ifdef HAS_SGP30
-  // Timer sgp30_timer(SGP30_READ_INTERVAL, sgp30_timer_handler);
-  // #endif
 public:
-
   // Using defaults
   AirQualityWing();
 
