@@ -6,13 +6,6 @@
  * License: GNU GPLv3
  */
 
-// IMPORTANT: you need to set the hardware version of your board here.
-// #define AQW_HW_VERSION AQW_HW_VER5
-
-#ifndef AQW_HW_VERSION
-#error Please set AQW_HW_VERSION at the top of AirQualityWing.ino
-#endif
-
 #include "AirQualityWing.h"
 #include "board.h"
 
@@ -64,7 +57,7 @@ void setup()
   Wire.setSpeed(I2C_CLK_SPEED);
   Wire.begin();
 
-#if AQW_HW_VERSION < AQW_HW_VER5
+#if AQW_HW_VERSION < AQW_HW_VER6
   // Default settings
   AirQualityWingSettings_t defaultSettings =
       {
@@ -72,6 +65,7 @@ void setup()
           true,                 //Has HPMA115
           true,                 //Has CCS811
           true,                 //Has Si7021
+          false,                //Has SGP30
           CCS811_ADDRESS,       //CCS811 address
           CCS811_INT_PIN,       //CCS811 intpin
           CCS811_RST_PIN,       //CCS811 rst pin
