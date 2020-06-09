@@ -6,6 +6,13 @@
  * License: GNU GPLv3
  */
 
+// IMPORTANT: you need to set the hardware version of your board here.
+// #define AQW_HW_VERSION AQW_HW_VER5
+
+#ifndef AQW_HW_VERSION
+#error Please set AQW_HW_VERSION at the top of AirQualityWing.ino
+#endif
+
 #include "AirQualityWing.h"
 #include "board.h"
 
@@ -57,7 +64,7 @@ void setup()
   Wire.setSpeed(I2C_CLK_SPEED);
   Wire.begin();
 
-#if HW_VERSION < HW_VER5
+#if AQW_HW_VERSION < AQW_HW_VER5
   // Default settings
   AirQualityWingSettings_t defaultSettings =
       {
