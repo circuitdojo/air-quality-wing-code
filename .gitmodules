@@ -1,0 +1,3 @@
+[submodule "lib/air-quality-wing-library"]
+	path = lib/air-quality-wing-library
+	url = https://github.com/circuitdojo/air-quality-wing-library.git
