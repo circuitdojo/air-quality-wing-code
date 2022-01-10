@@ -29,7 +29,7 @@ static void AirQualityWingEvent()
 {
   Log.info(AirQual.toString());
 
-  Particle.publish(AirQual.toString());
+  Particle.publish("aqw", AirQual.toString(), PRIVATE, WITH_ACK);
 }
 
 // setup() runs once, when the device is first turned on.
@@ -63,9 +63,6 @@ void setup()
   AirQual.setup(AirQualityWingEvent, defaultSettings);
   AirQual.begin();
 
-  // Set up keep alive
-  Particle.keepAlive(60);
-
   // Startup message
   Serial.println("Air Quality Wing");
 }
@@ -93,6 +90,4 @@ void loop()
       break;
     }
   }
-
-  System.sleep(SLEEP_MODE_DEEP, 1);
 }
