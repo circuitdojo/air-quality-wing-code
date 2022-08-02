@@ -13,13 +13,14 @@ The Air Quality Wing (Previously Particle Squared) is a circuit board that helps
 **This quick start assumes you have [Particle Workbench](https://www.particle.io/workbench/) installed.**
 
 1. Clone this repo onto a place on your machine: `git clone git@github.com:circuitdojo/air-quality-wing-code.git`
-2. Init the library submodule using `git git submodule update --init --recursive`
-3. Open the repo with Visual Code: (`code .` using the command line, or `file`->`open`)
-4. Open `/src/AirQualityWing.ino`
-5. Select your target device in the lower bar (Options are: `argon` and `boron`)
-6. Hit `cmd` + `shift` + `p` to get the command menu
-7. Select `Compile application (local)`. You can also choose `Cloud flash` as long as `board.h` has not been modified.
-8. Enjoy playing around with your Air Quality Wing!
+2. Change directory to `air-quality-wing-code`
+3. Init the library submodule using `git git submodule update --init --recursive`
+4. Open the repo with Visual Code: (`code .` using the command line, or `file`->`open`)
+5. Open `/src/AirQualityWing.ino`
+6. Select your target device in the lower bar (Options are: `argon` and `boron`)
+7. Hit `cmd` + `shift` + `p` to get the command menu
+8. Select `Compile application (local)`. You can also choose `Cloud flash` as long as `board.h` has not been modified.
+9. Enjoy playing around with your Air Quality Wing!
 
 This example has been tested with DeviceOS 3.1.0. It's recommended to upgrade if you have problems.
 
